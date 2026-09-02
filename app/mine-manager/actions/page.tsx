@@ -1,9 +1,11 @@
 "use client";
+import { useState, useEffect } from "react";
 import { ListChecks, Plus, Clock, CheckCircle, AlertTriangle, User, Calendar } from "lucide-react";
 
 type Action = { id: string; title: string; assignee: string; due: string; priority: string; category: string; relatedTo: string };
+type Column = { status: string; color: string; bg: string; icon: React.ReactNode; items: Action[] };
 
-const actions: { status: string; color: string; bg: string; icon: React.ReactNode; items: Action[] }[] = [
+const actions: Column[] = [
   {
     status: "Overdue", color: "#dc2626", bg: "#fee2e2", icon: <AlertTriangle size={14} color="#dc2626" />,
     items: [
@@ -44,17 +46,260 @@ const priorityStyle = (p: string) => {
 };
 
 export default function ActionsPage() {
-  const totals = actions.map(col => col.items.length);
+  const [columnsData, setColumnsData] = useState(actions);
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [toastMsg, setToastMsg] = useState<string | null>(null);
+
+  // Form fields
+  const [title, setTitle] = useState("");
+  const [assignee, setAssignee] = useState("Er. S. Mehta");
+  const [status, setStatus] = useState("On Track");
+  const [priority, setPriority] = useState("High");
+  const [category, setCategory] = useState("Ventilation");
+  const [due, setDue] = useState("May 28, 2025");
+  const [relatedTo, setRelatedTo] = useState("DGMS Directive");
+
+  // Load custom actions injected from OCR digitizer or previous sessions
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem("mineguard_custom_actions");
+      if (stored) {
+        const customActions: Action[] = JSON.parse(stored);
+        if (customActions.length > 0) {
+          setColumnsData(prev => prev.map(col => {
+            if (col.status === "Due Soon") {
+              return { ...col, items: [...customActions, ...col.items] };
+            }
+            return col;
+          }));
+        }
+      }
+    } catch (e) {}
+  }, []);
+
+  const handleCreateAction = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!title.trim()) return;
+
+    const newAction: Action = {
+      id: `ACT-${Math.floor(60 + Math.random() * 940)}`,
+      title: title.trim(),
+      assignee,
+      due,
+      priority,
+      category,
+      relatedTo: relatedTo.trim() || "—"
+    };
+
+    setColumnsData(prev => prev.map(col => {
+      if (col.status === status) {
+        return { ...col, items: [newAction, ...col.items] };
+      }
+      return col;
+    }));
+
+    try {
+      const stored = localStorage.getItem("mineguard_custom_actions");
+      const existing = stored ? JSON.parse(stored) : [];
+      localStorage.setItem("mineguard_custom_actions", JSON.stringify([newAction, ...existing]));
+    } catch (err) {}
+
+    setShowAddModal(false);
+    setTitle("");
+    setToastMsg(`Action ${newAction.id} successfully added to "${status}" queue!`);
+    setTimeout(() => setToastMsg(null), 3500);
+  };
+
+  const totals = columnsData.map(col => col.items.length);
   const total  = totals.reduce((a, b) => a + b, 0);
 
   return (
-    <div style={{ fontFamily: "'Inter', -apple-system, sans-serif" }}>
+    <div style={{ fontFamily: "'Inter', -apple-system, sans-serif", position: "relative" }}>
+      {/* Toast Notification */}
+      {toastMsg && (
+        <div style={{
+          position: "fixed", bottom: 24, right: 24, background: "#0a1f13", color: "white",
+          padding: "12px 20px", borderRadius: 10, border: "1px solid #52b788",
+          boxShadow: "0 8px 24px rgba(0,0,0,0.25)", zIndex: 99999, display: "flex",
+          alignItems: "center", gap: 10, fontSize: 13, fontWeight: 600
+        }}>
+          <CheckCircle size={16} color="#52b788" />
+          <span>{toastMsg}</span>
+        </div>
+      )}
+
+      {/* Add Action Modal */}
+      {showAddModal && (
+        <div style={{
+          position: "fixed", top: 0, left: 0, right: 0, bottom: 0,
+          background: "rgba(0,0,0,0.55)", backdropFilter: "blur(4px)",
+          display: "flex", alignItems: "center", justifyContent: "center",
+          zIndex: 9999
+        }}>
+          <div style={{
+            background: "white", borderRadius: 14, width: "100%", maxWidth: 520,
+            padding: "24px 28px", boxShadow: "0 20px 40px rgba(0,0,0,0.25)",
+            border: "1px solid #e2e8f0"
+          }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 18 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <div style={{ width: 32, height: 32, borderRadius: 8, background: "#e8f5ee", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  <ListChecks size={18} color="#2d6a4f" />
+                </div>
+                <h3 style={{ fontSize: 17, fontWeight: 700, color: "#111827", margin: 0 }}>Create Corrective Safety Action</h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowAddModal(false)}
+                style={{ background: "none", border: "none", fontSize: 18, color: "#9ca3af", cursor: "pointer" }}
+              >
+                ✕
+              </button>
+            </div>
+
+            <form onSubmit={handleCreateAction} style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+              <div>
+                <label style={{ fontSize: 12, fontWeight: 700, color: "#374151", display: "block", marginBottom: 4 }}>
+                  Action / Task Title <span style={{ color: "#ef4444" }}>*</span>
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={title}
+                  onChange={e => setTitle(e.target.value)}
+                  placeholder="e.g. Calibrate CH₄ Telemetry Sensors at Section L-3 Heading 4"
+                  style={{ width: "100%", padding: "9px 12px", borderRadius: 8, border: "1px solid #cbd5e1", fontSize: 13 }}
+                />
+              </div>
+
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+                <div>
+                  <label style={{ fontSize: 12, fontWeight: 700, color: "#374151", display: "block", marginBottom: 4 }}>
+                    Assigned Colliery Officer <span style={{ color: "#ef4444" }}>*</span>
+                  </label>
+                  <select
+                    value={assignee}
+                    onChange={e => setAssignee(e.target.value)}
+                    style={{ width: "100%", padding: "8px 12px", borderRadius: 8, border: "1px solid #cbd5e1", fontSize: 13 }}
+                  >
+                    <option value="Er. S. Mehta (Ventilation)">Er. S. Mehta (Ventilation Officer)</option>
+                    <option value="Er. R. Sharma (Safety)">Er. R. Sharma (Colliery Safety Officer)</option>
+                    <option value="Er. K. Patel (Mechanical)">Er. K. Patel (Chief Mechanical Engr)</option>
+                    <option value="Er. P. Gupta (Electrical)">Er. P. Gupta (Electrical Superintendant)</option>
+                    <option value="Deepak Kumar (Shift Boss)">Deepak Kumar (Shift Overman)</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label style={{ fontSize: 12, fontWeight: 700, color: "#374151", display: "block", marginBottom: 4 }}>
+                    Workflow Column <span style={{ color: "#ef4444" }}>*</span>
+                  </label>
+                  <select
+                    value={status}
+                    onChange={e => setStatus(e.target.value)}
+                    style={{ width: "100%", padding: "8px 12px", borderRadius: 8, border: "1px solid #cbd5e1", fontSize: 13 }}
+                  >
+                    <option value="On Track">On Track (Normal Queue)</option>
+                    <option value="Due Soon">Due Soon (Urgent 72 Hours)</option>
+                    <option value="Overdue">Overdue (Immediate Priority)</option>
+                  </select>
+                </div>
+              </div>
+
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+                <div>
+                  <label style={{ fontSize: 12, fontWeight: 700, color: "#374151", display: "block", marginBottom: 4 }}>
+                    Priority Level <span style={{ color: "#ef4444" }}>*</span>
+                  </label>
+                  <select
+                    value={priority}
+                    onChange={e => setPriority(e.target.value)}
+                    style={{ width: "100%", padding: "8px 12px", borderRadius: 8, border: "1px solid #cbd5e1", fontSize: 13 }}
+                  >
+                    <option value="High">High (Statutory Requirement)</option>
+                    <option value="Medium">Medium (Operational Hazard)</option>
+                    <option value="Low">Low (General Compliance)</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label style={{ fontSize: 12, fontWeight: 700, color: "#374151", display: "block", marginBottom: 4 }}>
+                    Category <span style={{ color: "#ef4444" }}>*</span>
+                  </label>
+                  <select
+                    value={category}
+                    onChange={e => setCategory(e.target.value)}
+                    style={{ width: "100%", padding: "8px 12px", borderRadius: 8, border: "1px solid #cbd5e1", fontSize: 13 }}
+                  >
+                    <option value="Ventilation">Ventilation & Gases</option>
+                    <option value="Fire Safety">Fire Safety & Heatings</option>
+                    <option value="Equipment">HEMM & Machinery</option>
+                    <option value="Electrical">Electrical Earthing</option>
+                    <option value="Strata Control">Roof Bolting / Strata</option>
+                    <option value="Emergency">Emergency Readiness</option>
+                    <option value="PPE">Personal Protective Equipment</option>
+                  </select>
+                </div>
+              </div>
+
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+                <div>
+                  <label style={{ fontSize: 12, fontWeight: 700, color: "#374151", display: "block", marginBottom: 4 }}>
+                    Due Date <span style={{ color: "#ef4444" }}>*</span>
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={due}
+                    onChange={e => setDue(e.target.value)}
+                    placeholder="e.g. May 30, 2025"
+                    style={{ width: "100%", padding: "8px 12px", borderRadius: 8, border: "1px solid #cbd5e1", fontSize: 13 }}
+                  />
+                </div>
+
+                <div>
+                  <label style={{ fontSize: 12, fontWeight: 700, color: "#374151", display: "block", marginBottom: 4 }}>
+                    Related Ref / Violation ID
+                  </label>
+                  <input
+                    type="text"
+                    value={relatedTo}
+                    onChange={e => setRelatedTo(e.target.value)}
+                    placeholder="e.g. VIO-128 or CMR-153"
+                    style={{ width: "100%", padding: "8px 12px", borderRadius: 8, border: "1px solid #cbd5e1", fontSize: 13 }}
+                  />
+                </div>
+              </div>
+
+              <div style={{ display: "flex", justifyContent: "flex-end", gap: 10, marginTop: 8 }}>
+                <button
+                  type="button"
+                  onClick={() => setShowAddModal(false)}
+                  style={{ padding: "9px 16px", borderRadius: 8, border: "1px solid #cbd5e1", background: "white", fontSize: 13, fontWeight: 600, color: "#475569", cursor: "pointer" }}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  style={{ padding: "9px 20px", borderRadius: 8, border: "none", background: "#2d6a4f", color: "white", fontSize: 13, fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}
+                >
+                  <Plus size={15} /> Add to Queue
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20 }}>
         <div>
           <h2 style={{ fontSize: 18, fontWeight: 700, color: "#111827" }}>Actions & Tasks</h2>
           <p style={{ fontSize: 13, color: "#6b7280", marginTop: 2 }}>Track corrective actions across all safety areas.</p>
         </div>
-        <button style={{ display: "flex", alignItems: "center", gap: 6, padding: "9px 16px", background: "#2d6a4f", color: "white", border: "none", borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: "pointer" }}>
+        <button
+          onClick={() => setShowAddModal(true)}
+          style={{ display: "flex", alignItems: "center", gap: 6, padding: "9px 16px", background: "#2d6a4f", color: "white", border: "none", borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: "pointer", boxShadow: "0 2px 8px rgba(45,106,79,0.25)" }}
+        >
           <Plus size={14} /> Add Action
         </button>
       </div>
@@ -66,11 +311,11 @@ export default function ActionsPage() {
           <p style={{ fontSize: 22, fontWeight: 700, color: "#111827" }}>{total}</p>
         </div>
         <div style={{ width: "100%", maxWidth: 400, height: 12, background: "#f3f4f6", borderRadius: 6, overflow: "hidden", display: "flex" }}>
-          {actions.map(col => (
+          {columnsData.map(col => (
             <div key={col.status} style={{ height: "100%", width: `${(col.items.length / total) * 100}%`, background: col.color }} />
           ))}
         </div>
-        {actions.map(col => (
+        {columnsData.map(col => (
           <div key={col.status} style={{ display: "flex", alignItems: "center", gap: 6, whiteSpace: "nowrap" }}>
             <div style={{ width: 10, height: 10, borderRadius: "50%", background: col.color }} />
             <span style={{ fontSize: 12.5, color: "#374151" }}>{col.status}: <strong>{col.items.length}</strong></span>
@@ -80,7 +325,7 @@ export default function ActionsPage() {
 
       {/* Kanban Columns */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 14 }}>
-        {actions.map(col => (
+        {columnsData.map(col => (
           <div key={col.status} style={{ background: "#f9fafb", borderRadius: 12, border: "1px solid #e5e7eb", overflow: "hidden" }}>
             <div style={{ padding: "14px 16px", borderBottom: "1px solid #e5e7eb", display: "flex", alignItems: "center", gap: 8, background: col.bg }}>
               {col.icon}

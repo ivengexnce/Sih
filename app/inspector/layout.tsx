@@ -8,6 +8,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState, useEffect } from "react";
 import { storageService } from "@/lib/storage";
+import HeaderNavActions from "@/app/components/HeaderNavActions";
 
 const navItems = [
   { icon: LayoutDashboard, label: "Dashboard",   href: "/inspector" },
@@ -173,69 +174,8 @@ export default function InspectorLayout({ children }: { children: React.ReactNod
               <span style={{ fontSize: 12, fontWeight: 600, color: "#15803d" }}>{allocatedMine} · Assigned Beat</span>
             </div>
 
-            {/* Multilingual Switcher */}
-            <button
-              onClick={() => setLang(lang === "en" ? "hi" : "en")}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 6,
-                padding: "7px 12px",
-                border: "1px solid #e5e7eb",
-                borderRadius: 8,
-                background: "#f9fafb",
-                cursor: "pointer",
-                fontSize: 12,
-                fontWeight: 600,
-                color: "#1f2937"
-              }}
-            >
-              <Globe size={13} color="#2d6a4f" />
-              <span>{lang === "en" ? "EN 🇬🇧" : "हिंदी 🇮🇳"}</span>
-            </button>
-
-            {/* Notification Bell */}
-            <div style={{ position: "relative" }}>
-              <button
-                onClick={() => {
-                  setShowNotifications(!showNotifications);
-                  setUnreadCount(0);
-                }}
-                style={{ width: 38, height: 38, border: "1px solid #e5e7eb", borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center", background: "white", cursor: "pointer", position: "relative" }}
-                title="Notifications"
-              >
-                <Bell size={16} color="#374151" />
-                {unreadCount > 0 && (
-                  <span style={{ position: "absolute", top: -4, right: -4, width: 17, height: 17, background: "#dc2626", color: "white", borderRadius: "50%", fontSize: 10, fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center", border: "2px solid white" }}>
-                    {unreadCount}
-                  </span>
-                )}
-              </button>
-
-              {/* Notification Dropdown */}
-              {showNotifications && (
-                <div style={{ position: "absolute", right: 0, top: 46, width: 300, background: "white", borderRadius: 12, border: "1px solid #e5e7eb", boxShadow: "0 10px 25px rgba(0,0,0,0.1)", zIndex: 100, overflow: "hidden" }}>
-                  <div style={{ padding: "12px 16px", borderBottom: "1px solid #f3f4f6", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                    <span style={{ fontSize: 13, fontWeight: 700, color: "#111827" }}>Notifications</span>
-                    <button onClick={() => setShowNotifications(false)} style={{ background: "none", border: "none", cursor: "pointer", padding: 0 }}>
-                      <X size={14} color="#9ca3af" />
-                    </button>
-                  </div>
-                  <div>
-                    {notifications.map(n => (
-                      <div key={n.id} style={{ padding: "12px 16px", borderBottom: "1px solid #f9fafb", display: "flex", gap: 10, alignItems: "flex-start" }}>
-                        <div style={{ width: 8, height: 8, borderRadius: "50%", background: n.high ? "#dc2626" : "#2563eb", marginTop: 5, flexShrink: 0 }} />
-                        <div style={{ flex: 1 }}>
-                          <p style={{ fontSize: 12.5, fontWeight: 600, color: "#111827" }}>{n.title}</p>
-                          <p style={{ fontSize: 11.5, color: "#6b7280" }}>{n.area}</p>
-                          <p style={{ fontSize: 10.5, color: "#9ca3af", marginTop: 2 }}>{n.time}</p>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
+            {/* Interactive Notifications & Multilingual Switcher */}
+            <HeaderNavActions />
 
             {/* Profile Pill */}
             <div style={{ display: "flex", alignItems: "center", gap: 9, padding: "5px 10px", borderRadius: 24, border: "1px solid #e5e7eb", background: "#fafafa" }}>

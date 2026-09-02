@@ -9,6 +9,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState, useEffect } from "react";
 import { storageService } from "@/lib/storage";
+import HeaderNavActions from "@/app/components/HeaderNavActions";
 
 const navItems = [
   { icon: LayoutDashboard, label: "Dashboard",   href: "/mine-manager" },
@@ -119,34 +120,8 @@ export default function MineManagerLayout({ children }: { children: React.ReactN
               <span style={{ fontSize: 13, fontWeight: 600 }}>{allocatedMine}</span>
               <ChevronDown size={14} color="#9ca3af" />
             </div>
-            <div style={{ position: "relative" }}>
-              <div style={{ width: 38, height: 38, border: "1px solid #e5e7eb", borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", background: "white" }}>
-                <Bell size={16} color="#374151" />
-              </div>
-              <div style={{ position: "absolute", top: -4, right: -4, width: 18, height: 18, background: "#e63946", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", border: "2px solid white" }}>
-                <span style={{ color: "white", fontSize: 10, fontWeight: 700 }}>8</span>
-              </div>
-            </div>
-            {/* Multilingual Switcher */}
-            <button
-              onClick={() => setLang(lang === "en" ? "hi" : "en")}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 6,
-                padding: "8px 12px",
-                border: "1px solid #e5e7eb",
-                borderRadius: 8,
-                background: "#f9fafb",
-                cursor: "pointer",
-                fontSize: 12.5,
-                fontWeight: 600,
-                color: "#1f2937"
-              }}
-            >
-              <Globe size={14} color="#2d6a4f" />
-              <span>{lang === "en" ? "EN 🇬🇧" : "हिंदी 🇮🇳"}</span>
-            </button>
+            {/* Interactive Notifications & Multilingual Switcher */}
+            <HeaderNavActions />
 
             <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 14px", border: "1px solid #e5e7eb", borderRadius: 8, background: "white", cursor: "pointer" }}>
               <Calendar size={14} color="#6b7280" />

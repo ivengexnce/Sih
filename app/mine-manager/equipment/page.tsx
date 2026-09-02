@@ -34,25 +34,247 @@ const typeIcons: Record<string, React.ReactNode> = {
 export default function EquipmentPage() {
   const [colliery, setColliery] = useState<CollieryProfile>(getCollieryProfile("rajpura"));
   const [query, setQuery] = useState("");
+  const [equipmentList, setEquipmentList] = useState(equipment);
+  const [showModal, setShowModal] = useState(false);
+  const [toastMsg, setToastMsg] = useState<string | null>(null);
+
+  // Form fields
+  const [name, setName] = useState("");
+  const [type, setType] = useState("Transport");
+  const [location, setLocation] = useState("Pit Area – Bench 2");
+  const [status, setStatus] = useState("Operational");
+  const [operator, setOperator] = useState("Deepak Kumar");
+  const [fuel, setFuel] = useState(85);
+  const [hours, setHours] = useState(4200);
 
   useEffect(() => {
     try {
       const mine = storageService.getActiveAllocatedMine();
       setColliery(getCollieryProfile(mine));
+
+      const stored = localStorage.getItem("mineguard_custom_equipment");
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        setEquipmentList([...parsed, ...equipment]);
+      }
     } catch (e) {}
   }, []);
 
+  const handleAddEquipment = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!name.trim()) return;
+
+    const newEq = {
+      id: `EQ-0${Math.floor(10 + Math.random() * 90)}`,
+      name: name.trim(),
+      type,
+      location: location.trim(),
+      status,
+      uptime: status === "Operational" ? 95 : status === "Maintenance" ? 65 : status === "Idle" ? 50 : 0,
+      lastService: new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }),
+      nextService: "Jun 20, 2025",
+      operator: operator.trim() || "—",
+      fuel: Number(fuel) || 80,
+      hours: Number(hours) || 1200
+    };
+
+    const updated = [newEq, ...equipmentList];
+    setEquipmentList(updated);
+
+    try {
+      const stored = localStorage.getItem("mineguard_custom_equipment");
+      const existing = stored ? JSON.parse(stored) : [];
+      localStorage.setItem("mineguard_custom_equipment", JSON.stringify([newEq, ...existing]));
+    } catch (err) {}
+
+    setShowModal(false);
+    setName("");
+    setToastMsg(`Equipment ${newEq.id} (${newEq.name}) successfully added to active colliery fleet!`);
+    setTimeout(() => setToastMsg(null), 3500);
+  };
+
   const counts = { Operational: 0, Maintenance: 0, Idle: 0, "Out of Service": 0 };
-  equipment.forEach(e => { counts[e.status as keyof typeof counts]++; });
-  const avgUptime = Math.round(equipment.filter(e => e.status === "Operational").reduce((s, e) => s + e.uptime, 0) / (counts.Operational || 1));
-  const filtered  = equipment.filter(eq =>
+  equipmentList.forEach(e => { counts[e.status as keyof typeof counts]++; });
+  const avgUptime = Math.round(equipmentList.filter(e => e.status === "Operational").reduce((s, e) => s + e.uptime, 0) / Math.max(counts.Operational, 1));
+  const filtered  = equipmentList.filter(eq =>
     !query || [eq.name, eq.type, eq.location, eq.status, eq.operator, eq.id].some(f =>
       f.toLowerCase().includes(query.toLowerCase())
     )
   );
 
   return (
-    <div style={{ fontFamily: "'Inter', -apple-system, sans-serif" }}>
+    <div style={{ fontFamily: "'Inter', -apple-system, sans-serif", position: "relative" }}>
+      {/* Toast Notification */}
+      {toastMsg && (
+        <div style={{
+          position: "fixed", bottom: 24, right: 24, background: "#0a1f13", color: "white",
+          padding: "12px 20px", borderRadius: 10, border: "1px solid #52b788",
+          boxShadow: "0 8px 24px rgba(0,0,0,0.25)", zIndex: 99999, display: "flex",
+          alignItems: "center", gap: 10, fontSize: 13, fontWeight: 600
+        }}>
+          <CheckCircle size={16} color="#52b788" />
+          <span>{toastMsg}</span>
+        </div>
+      )}
+
+      {/* Add Equipment Modal */}
+      {showModal && (
+        <div style={{
+          position: "fixed", top: 0, left: 0, right: 0, bottom: 0,
+          background: "rgba(0,0,0,0.55)", backdropFilter: "blur(4px)",
+          display: "flex", alignItems: "center", justifyContent: "center",
+          zIndex: 9999
+        }}>
+          <div style={{
+            background: "white", borderRadius: 14, width: "100%", maxWidth: 520,
+            padding: "24px 28px", boxShadow: "0 20px 40px rgba(0,0,0,0.25)",
+            border: "1px solid #e2e8f0"
+          }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 18 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <div style={{ width: 32, height: 32, borderRadius: 8, background: "#e8f5ee", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  <Wrench size={18} color="#2d6a4f" />
+                </div>
+                <h3 style={{ fontSize: 17, fontWeight: 700, color: "#111827", margin: 0 }}>Register Colliery Heavy Equipment</h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowModal(false)}
+                style={{ background: "none", border: "none", fontSize: 18, color: "#9ca3af", cursor: "pointer" }}
+              >
+                ✕
+              </button>
+            </div>
+
+            <form onSubmit={handleAddEquipment} style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+              <div>
+                <label style={{ fontSize: 12, fontWeight: 700, color: "#374151", display: "block", marginBottom: 4 }}>
+                  Equipment Model & Asset Name <span style={{ color: "#ef4444" }}>*</span>
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={name}
+                  onChange={e => setName(e.target.value)}
+                  placeholder="e.g. BEML BH100 Dump Truck or Joy 12CM30 Miner"
+                  style={{ width: "100%", padding: "9px 12px", borderRadius: 8, border: "1px solid #cbd5e1", fontSize: 13 }}
+                />
+              </div>
+
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+                <div>
+                  <label style={{ fontSize: 12, fontWeight: 700, color: "#374151", display: "block", marginBottom: 4 }}>
+                    Machinery Category <span style={{ color: "#ef4444" }}>*</span>
+                  </label>
+                  <select
+                    value={type}
+                    onChange={e => setType(e.target.value)}
+                    style={{ width: "100%", padding: "8px 12px", borderRadius: 8, border: "1px solid #cbd5e1", fontSize: 13 }}
+                  >
+                    <option value="Transport">Transport (Haul / Dump Trucks)</option>
+                    <option value="Excavation">Excavation (Shovels / Excavators)</option>
+                    <option value="Mining">Mining (Continuous Miners / LHDs)</option>
+                    <option value="Drilling">Drilling (Blast Hole Drill Rigs)</option>
+                    <option value="Processing">Processing (Crushers / Conveyors)</option>
+                    <option value="Utilities">Utilities (Air Compressors / Pumps)</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label style={{ fontSize: 12, fontWeight: 700, color: "#374151", display: "block", marginBottom: 4 }}>
+                    Operational Status <span style={{ color: "#ef4444" }}>*</span>
+                  </label>
+                  <select
+                    value={status}
+                    onChange={e => setStatus(e.target.value)}
+                    style={{ width: "100%", padding: "8px 12px", borderRadius: 8, border: "1px solid #cbd5e1", fontSize: 13 }}
+                  >
+                    <option value="Operational">Operational (Active Duty)</option>
+                    <option value="Maintenance">Maintenance (Workshop)</option>
+                    <option value="Idle">Idle (Standby)</option>
+                    <option value="Out of Service">Out of Service (Breakdown)</option>
+                  </select>
+                </div>
+              </div>
+
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+                <div>
+                  <label style={{ fontSize: 12, fontWeight: 700, color: "#374151", display: "block", marginBottom: 4 }}>
+                    Assigned Mine Section <span style={{ color: "#ef4444" }}>*</span>
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={location}
+                    onChange={e => setLocation(e.target.value)}
+                    placeholder="e.g. Pit Area – Sec A"
+                    style={{ width: "100%", padding: "8px 12px", borderRadius: 8, border: "1px solid #cbd5e1", fontSize: 13 }}
+                  />
+                </div>
+
+                <div>
+                  <label style={{ fontSize: 12, fontWeight: 700, color: "#374151", display: "block", marginBottom: 4 }}>
+                    Designated Operator
+                  </label>
+                  <input
+                    type="text"
+                    value={operator}
+                    onChange={e => setOperator(e.target.value)}
+                    placeholder="e.g. Anil Singh"
+                    style={{ width: "100%", padding: "8px 12px", borderRadius: 8, border: "1px solid #cbd5e1", fontSize: 13 }}
+                  />
+                </div>
+              </div>
+
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+                <div>
+                  <label style={{ fontSize: 12, fontWeight: 700, color: "#374151", display: "block", marginBottom: 4 }}>
+                    Telemetry Fuel / Battery %
+                  </label>
+                  <input
+                    type="number"
+                    min={0}
+                    max={100}
+                    value={fuel}
+                    onChange={e => setFuel(Number(e.target.value))}
+                    style={{ width: "100%", padding: "8px 12px", borderRadius: 8, border: "1px solid #cbd5e1", fontSize: 13 }}
+                  />
+                </div>
+
+                <div>
+                  <label style={{ fontSize: 12, fontWeight: 700, color: "#374151", display: "block", marginBottom: 4 }}>
+                    Total Engine Hours
+                  </label>
+                  <input
+                    type="number"
+                    min={0}
+                    value={hours}
+                    onChange={e => setHours(Number(e.target.value))}
+                    style={{ width: "100%", padding: "8px 12px", borderRadius: 8, border: "1px solid #cbd5e1", fontSize: 13 }}
+                  />
+                </div>
+              </div>
+
+              <div style={{ display: "flex", justifyContent: "flex-end", gap: 10, marginTop: 8 }}>
+                <button
+                  type="button"
+                  onClick={() => setShowModal(false)}
+                  style={{ padding: "9px 16px", borderRadius: 8, border: "1px solid #cbd5e1", background: "white", fontSize: 13, fontWeight: 600, color: "#475569", cursor: "pointer" }}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  style={{ padding: "9px 20px", borderRadius: 8, border: "none", background: "#2d6a4f", color: "white", fontSize: 13, fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}
+                >
+                  <Plus size={15} /> Add to Fleet
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20 }}>
         <div>
           <h2 style={{ fontSize: 18, fontWeight: 700, color: "#111827" }}>
@@ -62,7 +284,10 @@ export default function EquipmentPage() {
             Real-time equipment availability, telemetry, and uptime for {colliery.cleanName} ({colliery.subsidiary}).
           </p>
         </div>
-        <button style={{ display: "flex", alignItems: "center", gap: 6, padding: "9px 16px", background: "#2d6a4f", color: "white", border: "none", borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: "pointer" }}>
+        <button
+          onClick={() => setShowModal(true)}
+          style={{ display: "flex", alignItems: "center", gap: 6, padding: "9px 16px", background: "#2d6a4f", color: "white", border: "none", borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: "pointer", boxShadow: "0 2px 8px rgba(45,106,79,0.25)" }}
+        >
           <Plus size={14} /> Add Equipment
         </button>
       </div>

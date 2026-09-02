@@ -1,6 +1,7 @@
 "use client";
-import { FileText, Plus, Search, Download, Folder, Calendar, Shield, FileCheck, BookOpen } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { FileText, Plus, Search, Download, Folder, Calendar, Shield, FileCheck, BookOpen, CheckCircle, UploadCloud, X } from "lucide-react";
+import { storageService } from "@/lib/storage";
 
 const categories = [
   { label: "Safety Manuals",  icon: <Shield size={20} color="#2d6a4f" />,   count: 14, bg: "#e8f5ee", color: "#2d6a4f" },
@@ -32,27 +33,282 @@ const statusStyle = (s: string) => s === "Current"
   : { bg: "#fff7ed", color: "#ea580c" };
 
 export default function DocumentsPage() {
+  const [documentsList, setDocumentsList] = useState(documents);
   const [query, setQuery] = useState("");
-  const filtered = documents.filter(d =>
+  const [showModal, setShowModal] = useState(false);
+  const [toastMsg, setToastMsg] = useState<string | null>(null);
+
+  // Form fields
+  const [name, setName] = useState("");
+  const [category, setCategory] = useState("Safety Manuals");
+  const [author, setAuthor] = useState("Er. Rajesh Sharma");
+  const [status, setStatus] = useState("Current");
+  const [fileSize, setFileSize] = useState("1.4 MB");
+  const [selectedFileName, setSelectedFileName] = useState<string | null>(null);
+
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem("mineguard_custom_documents");
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        setDocumentsList([...parsed, ...documents]);
+      }
+      const sess = storageService.getCurrentSession();
+      if (sess?.name) setAuthor(sess.name);
+    } catch (e) {}
+  }, []);
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setSelectedFileName(file.name);
+      if (!name) setName(file.name.replace(/\.[^/.]+$/, ""));
+      const mb = (file.size / (1024 * 1024)).toFixed(1);
+      setFileSize(`${mb} MB`);
+    }
+  };
+
+  const handleUpload = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!name.trim()) return;
+
+    const newDoc = {
+      id: `DOC-0${Math.floor(95 + Math.random() * 85)}`,
+      name: name.trim(),
+      category,
+      updated: new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }),
+      size: fileSize,
+      author: author.trim() || "Er. Rajesh Sharma",
+      status
+    };
+
+    const updated = [newDoc, ...documentsList];
+    setDocumentsList(updated);
+
+    try {
+      const stored = localStorage.getItem("mineguard_custom_documents");
+      const existing = stored ? JSON.parse(stored) : [];
+      localStorage.setItem("mineguard_custom_documents", JSON.stringify([newDoc, ...existing]));
+    } catch (err) {}
+
+    setShowModal(false);
+    setName("");
+    setSelectedFileName(null);
+    setToastMsg(`Document ${newDoc.id} (${newDoc.name}) uploaded to repository!`);
+    setTimeout(() => setToastMsg(null), 3500);
+  };
+
+  const handleDownload = (doc: typeof documents[0]) => {
+    const docContent = `=====================================================
+MINEGUARD REPOSITORY - OFFICIAL STATUTORY DOCUMENT
+=====================================================
+Document ID: ${doc.id}
+Document Title: ${doc.name}
+Category: ${doc.category}
+Uploaded / Verified By: ${doc.author}
+Status: ${doc.status}
+Effective Date: ${doc.updated}
+Colliery Jurisdiction: Rajpura Coal Mine (SECL)
+
+Statutory Compliance Notice:
+This document has been archived in compliance with Directorate General 
+of Mines Safety (DGMS) circulars, the Mines Act 1952, and Coal Mines 
+Regulations 2017. Any modifications must be countersigned by the Manager.
+=====================================================`;
+
+    const blob = new Blob([docContent], { type: "text/plain;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `${doc.id}_${doc.name.replace(/\s+/g, "_")}.txt`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+
+    setToastMsg(`Downloaded document ${doc.id}!`);
+    setTimeout(() => setToastMsg(null), 3000);
+  };
+
+  // Dynamic category counts
+  const categoryCounts: Record<string, number> = {};
+  documentsList.forEach(d => {
+    categoryCounts[d.category] = (categoryCounts[d.category] || 0) + 1;
+  });
+
+  const dynamicCategories = categories.map(c => ({
+    ...c,
+    count: categoryCounts[c.label] || c.count
+  }));
+
+  const filtered = documentsList.filter(d =>
     !query || [d.name, d.category, d.author, d.status, d.id].some(f =>
       f.toLowerCase().includes(query.toLowerCase())
     )
   );
+
   return (
-    <div style={{ fontFamily: "'Inter', -apple-system, sans-serif" }}>
+    <div style={{ fontFamily: "'Inter', -apple-system, sans-serif", position: "relative" }}>
+      {/* Toast Notification */}
+      {toastMsg && (
+        <div style={{
+          position: "fixed", bottom: 24, right: 24, background: "#0a1f13", color: "white",
+          padding: "12px 20px", borderRadius: 10, border: "1px solid #52b788",
+          boxShadow: "0 8px 24px rgba(0,0,0,0.25)", zIndex: 99999, display: "flex",
+          alignItems: "center", gap: 10, fontSize: 13, fontWeight: 600
+        }}>
+          <CheckCircle size={16} color="#52b788" />
+          <span>{toastMsg}</span>
+        </div>
+      )}
+
+      {/* Upload Document Modal */}
+      {showModal && (
+        <div style={{
+          position: "fixed", top: 0, left: 0, right: 0, bottom: 0,
+          background: "rgba(0,0,0,0.55)", backdropFilter: "blur(4px)",
+          display: "flex", alignItems: "center", justifyContent: "center",
+          zIndex: 9999
+        }}>
+          <div style={{
+            background: "white", borderRadius: 14, width: "100%", maxWidth: 520,
+            padding: "24px 28px", boxShadow: "0 20px 40px rgba(0,0,0,0.25)",
+            border: "1px solid #e2e8f0"
+          }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 18 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <div style={{ width: 32, height: 32, borderRadius: 8, background: "#e8f5ee", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  <UploadCloud size={18} color="#2d6a4f" />
+                </div>
+                <h3 style={{ fontSize: 17, fontWeight: 700, color: "#111827", margin: 0 }}>Upload Colliery Document</h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowModal(false)}
+                style={{ background: "none", border: "none", fontSize: 18, color: "#9ca3af", cursor: "pointer" }}
+              >
+                ✕
+              </button>
+            </div>
+
+            <form onSubmit={handleUpload} style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+              {/* File Dropzone */}
+              <div style={{
+                border: "2px dashed #cbd5e1", borderRadius: 10, padding: "20px 14px",
+                textAlign: "center", background: "#f8fafc", cursor: "pointer", position: "relative"
+              }}>
+                <input
+                  type="file"
+                  accept=".pdf,.doc,.docx,.xlsx,.png,.jpg"
+                  onChange={handleFileChange}
+                  style={{
+                    position: "absolute", top: 0, left: 0, width: "100%", height: "100%",
+                    opacity: 0, cursor: "pointer"
+                  }}
+                />
+                <UploadCloud size={28} color="#2d6a4f" style={{ margin: "0 auto 6px" }} />
+                <p style={{ margin: 0, fontSize: 13, fontWeight: 600, color: "#1e293b" }}>
+                  {selectedFileName ? selectedFileName : "Click or drag file here to upload"}
+                </p>
+                <p style={{ margin: "3px 0 0 0", fontSize: 11.5, color: "#64748b" }}>
+                  Supports PDF, DOCX, XLSX up to 50MB
+                </p>
+              </div>
+
+              <div>
+                <label style={{ fontSize: 12, fontWeight: 700, color: "#374151", display: "block", marginBottom: 4 }}>
+                  Document Name / Title <span style={{ color: "#ef4444" }}>*</span>
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={name}
+                  onChange={e => setName(e.target.value)}
+                  placeholder="e.g. Strata Control & Monitoring Plan (SCAMP) v2.4"
+                  style={{ width: "100%", padding: "9px 12px", borderRadius: 8, border: "1px solid #cbd5e1", fontSize: 13 }}
+                />
+              </div>
+
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+                <div>
+                  <label style={{ fontSize: 12, fontWeight: 700, color: "#374151", display: "block", marginBottom: 4 }}>
+                    Document Category <span style={{ color: "#ef4444" }}>*</span>
+                  </label>
+                  <select
+                    value={category}
+                    onChange={e => setCategory(e.target.value)}
+                    style={{ width: "100%", padding: "8px 12px", borderRadius: 8, border: "1px solid #cbd5e1", fontSize: 13 }}
+                  >
+                    <option value="Safety Manuals">Safety Manuals</option>
+                    <option value="Compliance Docs">Compliance Docs</option>
+                    <option value="Procedures">Procedures & SOPs</option>
+                    <option value="Inspection Forms">Inspection Forms</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label style={{ fontSize: 12, fontWeight: 700, color: "#374151", display: "block", marginBottom: 4 }}>
+                    Statutory Lifecycle Status
+                  </label>
+                  <select
+                    value={status}
+                    onChange={e => setStatus(e.target.value)}
+                    style={{ width: "100%", padding: "8px 12px", borderRadius: 8, border: "1px solid #cbd5e1", fontSize: 13 }}
+                  >
+                    <option value="Current">Current (Active)</option>
+                    <option value="Under Review">Under Review</option>
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label style={{ fontSize: 12, fontWeight: 700, color: "#374151", display: "block", marginBottom: 4 }}>
+                  Signing / Submitting Officer
+                </label>
+                <input
+                  type="text"
+                  value={author}
+                  onChange={e => setAuthor(e.target.value)}
+                  style={{ width: "100%", padding: "8px 12px", borderRadius: 8, border: "1px solid #cbd5e1", fontSize: 13 }}
+                />
+              </div>
+
+              <div style={{ display: "flex", justifyContent: "flex-end", gap: 10, marginTop: 8 }}>
+                <button
+                  type="button"
+                  onClick={() => setShowModal(false)}
+                  style={{ padding: "9px 16px", borderRadius: 8, border: "1px solid #cbd5e1", background: "white", fontSize: 13, fontWeight: 600, color: "#475569", cursor: "pointer" }}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  style={{ padding: "9px 20px", borderRadius: 8, border: "none", background: "#2d6a4f", color: "white", fontSize: 13, fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}
+                >
+                  <UploadCloud size={15} /> Save & Upload
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20 }}>
         <div>
           <h2 style={{ fontSize: 18, fontWeight: 700, color: "#111827" }}>Documents</h2>
           <p style={{ fontSize: 13, color: "#6b7280", marginTop: 2 }}>Access safety manuals, compliance documents, and procedures.</p>
         </div>
-        <button style={{ display: "flex", alignItems: "center", gap: 6, padding: "9px 16px", background: "#2d6a4f", color: "white", border: "none", borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: "pointer" }}>
+        <button
+          onClick={() => setShowModal(true)}
+          style={{ display: "flex", alignItems: "center", gap: 6, padding: "9px 16px", background: "#2d6a4f", color: "white", border: "none", borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: "pointer", boxShadow: "0 2px 8px rgba(45,106,79,0.25)" }}
+        >
           <Plus size={14} /> Upload Document
         </button>
       </div>
 
       {/* Category Cards */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 14, marginBottom: 20 }}>
-        {categories.map(c => (
+        {dynamicCategories.map(c => (
           <div key={c.label} style={{ background: "white", border: "1px solid #e5e7eb", borderRadius: 12, padding: "18px 20px", cursor: "pointer", display: "flex", gap: 14, alignItems: "center" }}>
             <div style={{ width: 44, height: 44, borderRadius: 12, background: c.bg, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
               {c.icon}
@@ -109,7 +365,10 @@ export default function DocumentsPage() {
                     <span style={{ padding: "3px 9px", borderRadius: 20, fontSize: 11.5, fontWeight: 600, background: sc.bg, color: sc.color }}>{doc.status}</span>
                   </td>
                   <td style={{ padding: "12px 16px" }}>
-                    <button style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 12, color: "#2d6a4f", fontWeight: 600, background: "none", border: "none", cursor: "pointer", padding: 0 }}>
+                    <button
+                      onClick={() => handleDownload(doc)}
+                      style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 12, color: "#2d6a4f", fontWeight: 700, background: "none", border: "none", cursor: "pointer", padding: "4px 8px", borderRadius: 6, transition: "background 0.15s" }}
+                    >
                       <Download size={13} /> Download
                     </button>
                   </td>
