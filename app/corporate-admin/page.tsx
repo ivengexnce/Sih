@@ -1,25 +1,16 @@
 "use client";
 
-import { useState } from "react";
+import React, { useState } from "react";
 import {
-  LayoutDashboard, Mountain, ShieldCheck, BarChart2,
-  Users, Settings, Bell, ChevronDown, TrendingUp,
-  TrendingDown, ArrowRight, Info, LogOut, AlertTriangle,
-  CheckCircle, XCircle, Globe, FileText
-} from "lucide-react";
-import {
-  AreaChart, Area, LineChart, Line, BarChart, Bar,
+  AreaChart, Area, LineChart, Line,
   XAxis, YAxis, ResponsiveContainer, Tooltip, PieChart, Pie, Cell
 } from "recharts";
-
-const navItems = [
-  { icon: LayoutDashboard, label: "Dashboard",  active: true,  href: "/corporate-admin" },
-  { icon: Mountain,        label: "Mines",       active: false, href: "/corporate-admin/mines" },
-  { icon: ShieldCheck,     label: "Compliance",  active: false, href: "/corporate-admin/compliance" },
-  { icon: BarChart2,       label: "Reports",     active: false, href: "/corporate-admin/reports" },
-  { icon: Users,           label: "Team",        active: false, href: "/corporate-admin/team" },
-  { icon: Settings,        label: "Settings",    active: false, href: "#" },
-];
+import {
+  Mountain, ShieldCheck, FileText, AlertTriangle, TrendingUp, TrendingDown,
+  Info, ArrowRight, BrainCircuit, Sparkles, Globe, Compass, ShieldAlert
+} from "lucide-react";
+import Link from "next/link";
+import AiRiskModal, { AiRiskTarget } from "@/app/components/AiRiskModal";
 
 const complianceData = [
   { month: "Jan", score: 72 }, { month: "Feb", score: 75 },
@@ -30,25 +21,25 @@ const complianceData = [
 ];
 
 const minePerformance = [
-  { name: "Rajpura",  compliance: 88, risk: "Low" },
-  { name: "Dhanbad",  compliance: 74, risk: "High" },
-  { name: "Korba",    compliance: 91, risk: "Low" },
-  { name: "Singrauli",compliance: 67, risk: "High" },
-  { name: "Talcher",  compliance: 82, risk: "Medium" },
-  { name: "Gevra",    compliance: 79, risk: "Medium" },
+  { name: "Rajpura Coal Mine (SECL)",  compliance: 88, risk: "Low",    depth: "380m", workers: 312, violations: 28 },
+  { name: "Jharia Deep Mine (BCCL)",   compliance: 74, risk: "High",   depth: "420m", workers: 224, violations: 44 },
+  { name: "Korba West (SECL)",         compliance: 91, risk: "Low",    depth: "140m", workers: 180, violations: 12 },
+  { name: "Singrauli Project (NCL)",   compliance: 67, risk: "High",   depth: "280m", workers: 268, violations: 35 },
+  { name: "Talcher Bhubaneswari (MCL)",compliance: 82, risk: "Medium", depth: "110m", workers: 195, violations: 22 },
+  { name: "Gevra Opencast (SECL)",     compliance: 94, risk: "Low",    depth: "120m", workers: 420, violations: 15 },
 ];
 
 const riskDist = [
-  { name: "High",   value: 3, color: "#e63946" },
-  { name: "Medium", value: 2, color: "#f4a261" },
-  { name: "Low",    value: 1, color: "#52b788" },
+  { name: "High",   value: 2, color: "#e63946" },
+  { name: "Medium", value: 1, color: "#f4a261" },
+  { name: "Low",    value: 3, color: "#52b788" },
 ];
 
 const violations = [
-  { mine: "Dhanbad Coal Mine",   type: "PPE Non-Compliance",  severity: "High",   date: "Sep 2, 2026" },
-  { mine: "Singrauli Block",     type: "Fire Safety",         severity: "High",   date: "Sep 1, 2026" },
-  { mine: "Talcher Central",     type: "Housekeeping",        severity: "Medium", date: "Aug 31, 2026" },
-  { mine: "Gevra East",          type: "Equipment Check",     severity: "Low",    date: "Aug 30, 2026" },
+  { mine: "Jharia Deep Mine",     type: "Spontaneous Coal Heating", severity: "High",   date: "Today, 10:15 AM" },
+  { mine: "Singrauli Project",    type: "Auxiliary Fan Failure",    severity: "High",   date: "Yesterday" },
+  { mine: "Talcher Bhubaneswari", type: "Air Quality Dust PM10",    severity: "Medium", date: "Sep 1, 2026" },
+  { mine: "Gevra Opencast",       type: "Haul Road Berm Grading",   severity: "Low",    date: "Aug 31, 2026" },
 ];
 
 const sparkData = {
@@ -62,238 +53,260 @@ function Sparkline({ data, color }: { data: number[]; color: string }) {
   const pts = data.map((v, i) => ({ x: i, y: v }));
   const id = `ca${color.replace("#","")}`;
   return (
-    <ResponsiveContainer width="100%" height={40}>
-      <AreaChart data={pts} margin={{ top: 2, right: 0, left: 0, bottom: 0 }}>
-        <defs>
-          <linearGradient id={id} x1="0" y1="0" x2="0" y2="1">
-            <stop offset="5%" stopColor={color} stopOpacity={0.25} />
-            <stop offset="95%" stopColor={color} stopOpacity={0} />
-          </linearGradient>
-        </defs>
-        <Area type="monotone" dataKey="y" stroke={color} strokeWidth={1.8} fill={`url(#${id})`} dot={false} />
-      </AreaChart>
-    </ResponsiveContainer>
-  );
-}
-
-function StatCard({ icon, label, value, change, positive, sparkData, sparkColor, iconBg }:
-  { icon: React.ReactNode; label: string; value: string; change: string;
-    positive: boolean; sparkData: number[]; sparkColor: string; iconBg: string }) {
-  return (
-    <div style={{ background: "white", borderRadius: 12, padding: "18px 18px 14px", border: "1px solid #e5e7eb", flex: 1, minWidth: 0 }}>
-      <div style={{ display: "flex", alignItems: "flex-start", gap: 12 }}>
-        <div style={{ width: 40, height: 40, borderRadius: 10, background: iconBg, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-          {icon}
-        </div>
-        <div style={{ flex: 1 }}>
-          <p style={{ fontSize: 10.5, color: "#6b7280", fontWeight: 600, letterSpacing: "0.04em", textTransform: "uppercase" as const }}>{label}</p>
-          <p style={{ fontSize: 26, fontWeight: 700, lineHeight: 1.15, marginTop: 2 }}>{value}</p>
-          <p style={{ fontSize: 11.5, marginTop: 3, display: "flex", alignItems: "center", gap: 3 }}>
-            {positive ? <TrendingUp size={12} color="#16a34a" /> : <TrendingDown size={12} color="#dc2626" />}
-            <span style={{ color: positive ? "#16a34a" : "#dc2626", fontWeight: 600 }}>{change}</span>
-            <span style={{ color: "#9ca3af" }}>vs last month</span>
-          </p>
-        </div>
-      </div>
-      <div style={{ marginTop: 10 }}>
-        <Sparkline data={sparkData} color={sparkColor} />
-      </div>
+    <div style={{ width: 80, height: 32 }}>
+      <ResponsiveContainer width="100%" height="100%">
+        <AreaChart data={pts} margin={{ top: 2, right: 2, left: 2, bottom: 2 }}>
+          <defs>
+            <linearGradient id={id} x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor={color} stopOpacity={0.4} />
+              <stop offset="100%" stopColor={color} stopOpacity={0.0} />
+            </linearGradient>
+          </defs>
+          <Area type="monotone" dataKey="y" stroke={color} strokeWidth={2} fill={`url(#${id})`} dot={false} isAnimationActive={false} />
+        </AreaChart>
+      </ResponsiveContainer>
     </div>
   );
 }
 
-export default function CorporateAdminDashboard() {
+export default function CorporateDashboard() {
+  const [selectedAiTarget, setSelectedAiTarget] = useState<AiRiskTarget | null>(null);
+
   return (
-    <div style={{ display: "flex", minHeight: "100vh", background: "#f8faf9", fontFamily: "'Inter', -apple-system, sans-serif" }}>
-
-      {/* Sidebar */}
-      <aside style={{ width: 216, minHeight: "100vh", background: "#0f2318", display: "flex", flexDirection: "column" as const, flexShrink: 0 }}>
-        <div style={{ padding: "20px 18px 16px", borderBottom: "1px solid rgba(255,255,255,0.08)" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            <div style={{ width: 36, height: 36, borderRadius: 8, background: "#52b788", display: "flex", alignItems: "center", justifyContent: "center" }}>
-              <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-                <path d="M3 16L10 4L17 16H3Z" fill="white" fillOpacity="0.9"/>
-                <path d="M7 16L10 10L13 16H7Z" fill="white" fillOpacity="0.45"/>
-              </svg>
-            </div>
-            <div>
-              <p style={{ color: "white", fontSize: 13.5, fontWeight: 700, letterSpacing: "0.04em" }}>SAFE MINES</p>
-              <p style={{ color: "rgba(255,255,255,0.4)", fontSize: 10, fontWeight: 500, letterSpacing: "0.06em" }}>CORPORATE ADMIN</p>
-            </div>
+    <div style={{ fontFamily: "'Inter', -apple-system, sans-serif" }}>
+      {/* AI Intelligence Header Banner */}
+      <div style={{
+        background: "linear-gradient(135deg, #07130b 0%, #0f2318 60%, #1a3d28 100%)",
+        border: "1px solid rgba(82,183,136,0.3)",
+        borderRadius: 16,
+        padding: "20px 24px",
+        marginBottom: 20,
+        boxShadow: "0 10px 25px rgba(0,0,0,0.18)",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "space-between",
+        flexWrap: "wrap",
+        gap: 16
+      }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+          <div style={{ width: 44, height: 44, borderRadius: 12, background: "rgba(134,239,172,0.15)", border: "1px solid rgba(134,239,172,0.35)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <BrainCircuit size={24} color="#86efac" />
           </div>
-        </div>
-        <nav style={{ flex: 1, padding: "12px 10px" }}>
-          {navItems.map(({ icon: Icon, label, active, href }) => (
-            <a key={label} href={href} style={{ display: "flex", alignItems: "center", gap: 10, padding: "9px 12px", borderRadius: 8, color: active ? "white" : "rgba(255,255,255,0.55)", background: active ? "#1a3d28" : "transparent", fontSize: 13.5, fontWeight: 500, marginBottom: 2, textDecoration: "none" }}>
-              <Icon size={16} strokeWidth={active ? 2.2 : 1.8} />
-              <span>{label}</span>
-            </a>
-          ))}
-        </nav>
-        <div style={{ padding: "14px", borderTop: "1px solid rgba(255,255,255,0.08)" }}>
-          <a href="/login" style={{ display: "flex", alignItems: "center", gap: 10, padding: "9px 12px", borderRadius: 8, color: "rgba(255,255,255,0.55)", fontSize: 13.5, fontWeight: 500, textDecoration: "none" }}>
-            <LogOut size={16} strokeWidth={1.8} />
-            <span>Sign out</span>
-          </a>
-        </div>
-      </aside>
-
-      {/* Main */}
-      <main style={{ flex: 1, display: "flex", flexDirection: "column" as const }}>
-
-        {/* Topbar */}
-        <header style={{ padding: "18px 28px", display: "flex", alignItems: "center", justifyContent: "space-between", background: "white", borderBottom: "1px solid #e5e7eb" }}>
           <div>
-            <h1 style={{ fontSize: 20, fontWeight: 700 }}>Corporate Overview 🏢</h1>
-            <p style={{ fontSize: 13, color: "#6b7280", marginTop: 2 }}>Portfolio-wide safety and compliance across all mines.</p>
-          </div>
-          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 14px", border: "1px solid #e5e7eb", borderRadius: 8, background: "white" }}>
-              <Globe size={14} color="#6b7280" />
-              <span style={{ fontSize: 13, fontWeight: 500 }}>All Mines</span>
-              <ChevronDown size={14} color="#9ca3af" />
-            </div>
-            <div style={{ position: "relative" as const }}>
-              <div style={{ width: 38, height: 38, border: "1px solid #e5e7eb", borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center", background: "white", cursor: "pointer" }}>
-                <Bell size={16} color="#374151" />
-              </div>
-              <div style={{ position: "absolute" as const, top: -4, right: -4, width: 18, height: 18, background: "#e63946", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", border: "2px solid white" }}>
-                <span style={{ color: "white", fontSize: 10, fontWeight: 700 }}>5</span>
-              </div>
-            </div>
             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-              <div style={{ width: 34, height: 34, borderRadius: "50%", background: "#1a3d28", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                <span style={{ color: "white", fontSize: 12, fontWeight: 700 }}>CA</span>
-              </div>
+              <h2 style={{ color: "white", fontSize: 17, fontWeight: 800 }}>National Coalfield AI Risk Surveillance</h2>
+              <span style={{ fontSize: 11, padding: "2px 8px", background: "rgba(134,239,172,0.15)", border: "1px solid rgba(134,239,172,0.3)", borderRadius: 12, color: "#86efac", fontWeight: 700 }}>
+                Ensemble 97.67%
+              </span>
+            </div>
+            <p style={{ color: "rgba(255,255,255,0.7)", fontSize: 12.5, marginTop: 2 }}>
+              Active AI monitoring across Coal India Limited (ECL, BCCL, CCL, WCL, SECL, MCL, NCL) · 2 Mines flagged with high spontaneous combustion risk
+            </p>
+          </div>
+        </div>
+
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <button
+            onClick={() => setSelectedAiTarget({
+              name: "Jharia Deep Colliery (BCCL)",
+              depth: "420m",
+              compliance: 74,
+              risk: "High",
+              workers: 224,
+              ch4: 1.45,
+              co: 52,
+              air: 0.35,
+              violations: 44
+            })}
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 6,
+              padding: "9px 14px",
+              background: "#dc2626",
+              color: "white",
+              border: "none",
+              borderRadius: 8,
+              fontSize: 12.5,
+              fontWeight: 700,
+              cursor: "pointer",
+              boxShadow: "0 2px 8px rgba(220,38,38,0.3)"
+            }}
+          >
+            <ShieldAlert size={14} /> Audit Jharia Deep (BCCL)
+          </button>
+
+          <Link
+            href="/corporate-admin/gis-map"
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 6,
+              padding: "9px 14px",
+              background: "rgba(255,255,255,0.12)",
+              color: "white",
+              border: "1px solid rgba(255,255,255,0.2)",
+              borderRadius: 8,
+              fontSize: 12.5,
+              fontWeight: 600,
+              textDecoration: "none"
+            }}
+          >
+            <Compass size={14} color="#86efac" /> National GIS Map <ArrowRight size={13} />
+          </Link>
+        </div>
+      </div>
+
+      {/* Stat Cards */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 14, marginBottom: 20 }}>
+        {[
+          { icon: <Mountain size={18} color="#2d6a4f" />, label: "Total Active Mines", value: "6", change: "+1 this month", positive: true, spark: sparkData.mines, color: "#2d6a4f" },
+          { icon: <ShieldCheck size={18} color="#2d6a4f" />, label: "Portfolio Compliance", value: "88%", change: "+3.2% vs last qtr", positive: true, spark: sparkData.compliance, color: "#52b788" },
+          { icon: <AlertTriangle size={18} color="#e63946" />, label: "Critical Hazard Alerts", value: "22", change: "-12% vs last wk", positive: true, spark: sparkData.violations, color: "#e63946" },
+          { icon: <FileText size={18} color="#2d6a4f" />, label: "DGMS Audits Conducted", value: "134", change: "+8 this week", positive: true, spark: sparkData.inspections, color: "#2d6a4f" },
+        ].map((card, i) => (
+          <div key={i} style={{ background: "white", borderRadius: 12, border: "1px solid #e5e7eb", padding: "18px 20px", display: "flex", flexDirection: "column", justifyContent: "space-between", boxShadow: "0 2px 8px rgba(0,0,0,0.02)" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
               <div>
-                <p style={{ fontSize: 13, fontWeight: 600 }}>Corp. Admin</p>
-                <p style={{ fontSize: 11, color: "#9ca3af" }}>Administrator</p>
+                <p style={{ fontSize: 11, color: "#6b7280", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.04em" }}>{card.label}</p>
+                <p style={{ fontSize: 26, fontWeight: 800, color: "#111827", marginTop: 4 }}>{card.value}</p>
               </div>
-              <ChevronDown size={14} color="#9ca3af" />
+              <div style={{ width: 36, height: 36, borderRadius: 8, background: "#f0fdf4", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                {card.icon}
+              </div>
+            </div>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginTop: 14 }}>
+              <span style={{ fontSize: 11.5, color: card.positive ? "#16a34a" : "#dc2626", fontWeight: 600 }}>{card.change}</span>
+              <Sparkline data={card.spark} color={card.color} />
             </div>
           </div>
-        </header>
+        ))}
+      </div>
 
-        <div style={{ padding: "22px 28px", overflowY: "auto" as const, flex: 1 }}>
-
-          {/* Stat Cards */}
-          <div style={{ display: "flex", gap: 14, marginBottom: 20 }}>
-            <StatCard icon={<Mountain size={18} color="white" />} label="Total Mines" value="6" change="1 added" positive={true} sparkData={sparkData.mines} sparkColor="#52b788" iconBg="#2d6a4f" />
-            <StatCard icon={<ShieldCheck size={18} color="white" />} label="Avg Compliance" value="88%" change="4.2%" positive={true} sparkData={sparkData.compliance} sparkColor="#52b788" iconBg="#2d6a4f" />
-            <StatCard icon={<AlertTriangle size={18} color="white" />} label="Open Violations" value="22" change="8.3%" positive={false} sparkData={sparkData.violations} sparkColor="#e63946" iconBg="#e63946" />
-            <StatCard icon={<FileText size={18} color="white" />} label="Inspections" value="134" change="12.6%" positive={true} sparkData={sparkData.inspections} sparkColor="#52b788" iconBg="#2d6a4f" />
+      {/* Compliance Trend + Risk Distribution */}
+      <div style={{ display: "grid", gridTemplateColumns: "1.7fr 1fr", gap: 14, marginBottom: 20 }}>
+        <div style={{ background: "white", borderRadius: 12, border: "1px solid #e5e7eb", padding: 20 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+              <span style={{ fontSize: 14, fontWeight: 700 }}>Subsidiary Compliance Index</span>
+              <span style={{ fontSize: 12, color: "#9ca3af" }}>(2026 Trend)</span>
+            </div>
+            <span style={{ fontSize: 16, fontWeight: 700, color: "#2d6a4f" }}>88% Portfolio Avg</span>
           </div>
+          <ResponsiveContainer width="100%" height={180}>
+            <AreaChart data={complianceData} margin={{ top: 4, right: 10, left: -20, bottom: 0 }}>
+              <defs>
+                <linearGradient id="compGrad" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#2d6a4f" stopOpacity={0.3} />
+                  <stop offset="95%" stopColor="#2d6a4f" stopOpacity={0.0} />
+                </linearGradient>
+              </defs>
+              <XAxis dataKey="month" tick={{ fontSize: 11, fill: "#9ca3af" }} axisLine={false} tickLine={false} />
+              <YAxis domain={[60, 100]} tick={{ fontSize: 11, fill: "#9ca3af" }} axisLine={false} tickLine={false} />
+              <Tooltip contentStyle={{ fontSize: 12, borderRadius: 8 }} />
+              <Area type="monotone" dataKey="score" stroke="#2d6a4f" strokeWidth={2.5} fillOpacity={1} fill="url(#compGrad)" />
+            </AreaChart>
+          </ResponsiveContainer>
+        </div>
 
-          {/* Middle row */}
-          <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: 14, marginBottom: 20 }}>
-
-            {/* Compliance Trend */}
-            <div style={{ background: "white", borderRadius: 12, border: "1px solid #e5e7eb", padding: 20 }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                  <span style={{ fontSize: 14, fontWeight: 600 }}>Portfolio Compliance Trend</span>
-                  <Info size={13} color="#9ca3af" />
-                </div>
-                <span style={{ fontSize: 18, fontWeight: 700, color: "#2d6a4f" }}>88%</span>
-              </div>
-              <ResponsiveContainer width="100%" height={180}>
-                <LineChart data={complianceData} margin={{ top: 4, right: 4, left: -24, bottom: 0 }}>
-                  <XAxis dataKey="month" tick={{ fontSize: 11, fill: "#9ca3af" }} axisLine={false} tickLine={false} />
-                  <YAxis domain={[60, 100]} tickFormatter={(v) => `${v}%`} tick={{ fontSize: 11, fill: "#9ca3af" }} axisLine={false} tickLine={false} />
-                  <Tooltip formatter={(v) => [`${v}%`, "Compliance"]} contentStyle={{ fontSize: 12, border: "1px solid #e5e7eb", borderRadius: 8 }} />
-                  <Line type="monotone" dataKey="score" stroke="#2d6a4f" strokeWidth={2.5} dot={{ fill: "#2d6a4f", r: 4, strokeWidth: 0 }} activeDot={{ r: 5 }} />
-                </LineChart>
-              </ResponsiveContainer>
-            </div>
-
-            {/* Risk Distribution */}
-            <div style={{ background: "white", borderRadius: 12, border: "1px solid #e5e7eb", padding: 20 }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 16 }}>
-                <span style={{ fontSize: 14, fontWeight: 600 }}>Risk Distribution</span>
-                <Info size={13} color="#9ca3af" />
-              </div>
-              <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-                <div style={{ position: "relative" as const, width: 130, height: 130, flexShrink: 0 }}>
-                  <PieChart width={130} height={130}>
-                    <Pie data={riskDist} cx={60} cy={60} innerRadius={42} outerRadius={60} dataKey="value" startAngle={90} endAngle={-270} strokeWidth={0}>
-                      {riskDist.map((d, i) => <Cell key={i} fill={d.color} />)}
-                    </Pie>
-                  </PieChart>
-                  <div style={{ position: "absolute" as const, inset: 0, display: "flex", flexDirection: "column" as const, alignItems: "center", justifyContent: "center" }}>
-                    <span style={{ fontSize: 20, fontWeight: 700 }}>6</span>
-                    <span style={{ fontSize: 10, color: "#6b7280" }}>Mines</span>
-                  </div>
-                </div>
-                <div style={{ flex: 1 }}>
-                  {riskDist.map(d => (
-                    <div key={d.name} style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
-                      <div style={{ width: 9, height: 9, borderRadius: "50%", background: d.color }} />
-                      <span style={{ fontSize: 12.5, color: "#4b5563", flex: 1 }}>{d.name} Risk</span>
-                      <span style={{ fontSize: 12.5, fontWeight: 700 }}>{d.value}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
+        <div style={{ background: "white", borderRadius: 12, border: "1px solid #e5e7eb", padding: 20 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 16 }}>
+            <span style={{ fontSize: 14, fontWeight: 700 }}>AI Risk Cluster Breakdown</span>
           </div>
-
-          {/* Mine Performance Table + Violations */}
-          <div style={{ display: "grid", gridTemplateColumns: "1.3fr 1fr", gap: 14 }}>
-
-            {/* Mine Performance */}
-            <div style={{ background: "white", borderRadius: 12, border: "1px solid #e5e7eb", padding: 20 }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
-                <h3 style={{ fontSize: 14, fontWeight: 600 }}>Mine Performance</h3>
-                <button style={{ fontSize: 12, color: "#2d6a4f", fontWeight: 600, background: "none", border: "none", cursor: "pointer", display: "flex", alignItems: "center", gap: 4 }}>
-                  View All <ArrowRight size={13} />
-                </button>
-              </div>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 80px", gap: 0 }}>
-                <p style={{ fontSize: 11, color: "#9ca3af", fontWeight: 600, paddingBottom: 8, borderBottom: "1px solid #f3f4f6" }}>MINE</p>
-                <p style={{ fontSize: 11, color: "#9ca3af", fontWeight: 600, paddingBottom: 8, borderBottom: "1px solid #f3f4f6" }}>COMPLIANCE</p>
-                <p style={{ fontSize: 11, color: "#9ca3af", fontWeight: 600, paddingBottom: 8, borderBottom: "1px solid #f3f4f6", textAlign: "right" as const }}>RISK</p>
-                {minePerformance.map((mine, i) => (
-                  <>
-                    <p key={`n${i}`} style={{ fontSize: 13, fontWeight: 600, padding: "11px 0", borderBottom: "1px solid #f3f4f6" }}>{mine.name}</p>
-                    <div key={`c${i}`} style={{ display: "flex", alignItems: "center", gap: 8, padding: "11px 8px 11px 0", borderBottom: "1px solid #f3f4f6" }}>
-                      <div style={{ flex: 1, height: 6, background: "#f3f4f6", borderRadius: 3, overflow: "hidden" }}>
-                        <div style={{ height: "100%", width: `${mine.compliance}%`, background: mine.compliance >= 85 ? "#52b788" : mine.compliance >= 75 ? "#f4a261" : "#e63946", borderRadius: 3 }} />
-                      </div>
-                      <span style={{ fontSize: 12, fontWeight: 600, color: "#374151", minWidth: 32 }}>{mine.compliance}%</span>
-                    </div>
-                    <div key={`r${i}`} style={{ display: "flex", justifyContent: "flex-end", alignItems: "center", padding: "11px 0", borderBottom: "1px solid #f3f4f6" }}>
-                      <span style={{ fontSize: 11.5, fontWeight: 600, padding: "2px 8px", borderRadius: 12, background: mine.risk === "High" ? "#fee2e2" : mine.risk === "Medium" ? "#fff7ed" : "#dcfce7", color: mine.risk === "High" ? "#dc2626" : mine.risk === "Medium" ? "#ea580c" : "#16a34a" }}>{mine.risk}</span>
-                    </div>
-                  </>
-                ))}
+          <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+            <div style={{ position: "relative", width: 130, height: 130, flexShrink: 0 }}>
+              <PieChart width={130} height={130}>
+                <Pie data={riskDist} cx={60} cy={60} innerRadius={42} outerRadius={60} dataKey="value" startAngle={90} endAngle={-270} strokeWidth={0}>
+                  {riskDist.map((d, i) => <Cell key={i} fill={d.color} />)}
+                </Pie>
+              </PieChart>
+              <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
+                <span style={{ fontSize: 20, fontWeight: 800 }}>6</span>
+                <span style={{ fontSize: 10, color: "#6b7280" }}>Mines</span>
               </div>
             </div>
-
-            {/* Recent Violations */}
-            <div style={{ background: "white", borderRadius: 12, border: "1px solid #e5e7eb", padding: 20 }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
-                <h3 style={{ fontSize: 14, fontWeight: 600 }}>Recent Violations</h3>
-                <button style={{ fontSize: 12, color: "#2d6a4f", fontWeight: 600, background: "none", border: "none", cursor: "pointer", display: "flex", alignItems: "center", gap: 4 }}>
-                  View All <ArrowRight size={13} />
-                </button>
-              </div>
-              {violations.map((v, i) => (
-                <div key={i} style={{ padding: "11px 0", borderBottom: i < violations.length - 1 ? "1px solid #f3f4f6" : "none" }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-                    <div>
-                      <p style={{ fontSize: 13, fontWeight: 600 }}>{v.type}</p>
-                      <p style={{ fontSize: 11.5, color: "#9ca3af", marginTop: 2 }}>{v.mine}</p>
-                      <p style={{ fontSize: 11, color: "#b0b8c1", marginTop: 1 }}>{v.date}</p>
-                    </div>
-                    <span style={{ fontSize: 11.5, fontWeight: 600, padding: "2px 8px", borderRadius: 12, background: v.severity === "High" ? "#fee2e2" : v.severity === "Medium" ? "#fff7ed" : "#dcfce7", color: v.severity === "High" ? "#dc2626" : v.severity === "Medium" ? "#ea580c" : "#16a34a", flexShrink: 0 }}>{v.severity}</span>
-                  </div>
+            <div style={{ flex: 1 }}>
+              {riskDist.map(d => (
+                <div key={d.name} style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
+                  <div style={{ width: 9, height: 9, borderRadius: "50%", background: d.color }} />
+                  <span style={{ fontSize: 12.5, color: "#4b5563", flex: 1 }}>{d.name} Risk</span>
+                  <span style={{ fontSize: 12.5, fontWeight: 700 }}>{d.value}</span>
                 </div>
               ))}
             </div>
           </div>
-
         </div>
-      </main>
+      </div>
+
+      {/* Mine Performance Table + Violations */}
+      <div style={{ display: "grid", gridTemplateColumns: "1.4fr 1fr", gap: 14 }}>
+        <div style={{ background: "white", borderRadius: 12, border: "1px solid #e5e7eb", padding: 20 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+            <h3 style={{ fontSize: 14, fontWeight: 700 }}>Flagship Mine Safety Telemetry</h3>
+            <Link href="/corporate-admin/mines" style={{ fontSize: 12, color: "#2d6a4f", fontWeight: 600, textDecoration: "none", display: "flex", alignItems: "center", gap: 4 }}>
+              View All <ArrowRight size={13} />
+            </Link>
+          </div>
+          <div>
+            {minePerformance.map((mine, i) => (
+              <div key={i} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 0", borderBottom: i < minePerformance.length - 1 ? "1px solid #f3f4f6" : "none" }}>
+                <div>
+                  <p style={{ fontSize: 13, fontWeight: 600, color: "#111827" }}>{mine.name}</p>
+                  <p style={{ fontSize: 11.5, color: "#6b7280" }}>Depth: {mine.depth} · Workers: {mine.workers}</p>
+                </div>
+                <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                  <div style={{ textAlign: "right", minWidth: 60 }}>
+                    <span style={{ fontSize: 12.5, fontWeight: 700, color: mine.compliance >= 85 ? "#16a34a" : "#dc2626" }}>{mine.compliance}%</span>
+                  </div>
+                  <button
+                    onClick={() => setSelectedAiTarget(mine)}
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 4,
+                      fontSize: 11.5,
+                      color: "#15803d",
+                      fontWeight: 700,
+                      background: "#f0fdf4",
+                      border: "1px solid #bbf7d0",
+                      borderRadius: 6,
+                      cursor: "pointer",
+                      padding: "4px 8px"
+                    }}
+                  >
+                    <BrainCircuit size={12} color="#16a34a" /> AI Audit
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Live Incident Feed */}
+        <div style={{ background: "white", borderRadius: 12, border: "1px solid #e5e7eb", padding: 20 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
+            <h3 style={{ fontSize: 14, fontWeight: 700 }}>Priority Safety Incidents</h3>
+            <span style={{ fontSize: 11, color: "#9ca3af" }}>Live CIL Feed</span>
+          </div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            {violations.map((v, i) => (
+              <div key={i} style={{ padding: "10px 12px", background: "#fafafa", borderRadius: 8, border: "1px solid #e5e7eb" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 2 }}>
+                  <span style={{ fontSize: 12, fontWeight: 700, color: "#111827" }}>{v.mine}</span>
+                  <span style={{ fontSize: 10, padding: "1px 6px", borderRadius: 4, background: v.severity === "High" ? "#fee2e2" : "#fff7ed", color: v.severity === "High" ? "#dc2626" : "#ea580c", fontWeight: 700 }}>
+                    {v.severity}
+                  </span>
+                </div>
+                <p style={{ fontSize: 12, color: "#4b5563" }}>{v.type}</p>
+                <p style={{ fontSize: 10.5, color: "#9ca3af", marginTop: 2 }}>{v.date}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* AI Risk Modal */}
+      <AiRiskModal target={selectedAiTarget} onClose={() => setSelectedAiTarget(null)} />
     </div>
   );
 }

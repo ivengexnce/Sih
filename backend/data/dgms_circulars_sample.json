@@ -1,0 +1,49 @@
+[
+  {
+    "doc_id": "DGMS-CIRC-2024-02",
+    "title": "Continuous Tele-Monitoring of Flammable Gases & Airborne Dust in Degree-III Underground Collieries",
+    "authority": "Directorate General of Mines Safety (DGMS), Dhanbad",
+    "date": "15 January 2024",
+    "reg_reference": "Coal Mines Regulations (CMR) 2017, Regulation 153 & 158",
+    "mine_scope": "All Degree II & Degree III Underground Coal Mines across CIL Subsidiaries",
+    "statutory_mandates": [
+      "Mandatory deployment of flameproof methane sensor heads at return airway split junctions.",
+      "Automatic power interlock to cut electrical feed when methane exceeds 1.0% volume in air.",
+      "Hourly verification of auxiliary fan airflow delivering minimum 0.5 m/s at dead-end faces.",
+      "Daily calibration check of multi-gas detector instruments using certified zero/span test gas."
+    ],
+    "severity_level": "High",
+    "compliance_deadline": "31 March 2024"
+  },
+  {
+    "doc_id": "MOEF-EC-2023-781",
+    "title": "Environmental Clearance for Production Expansion (from 35 MTPA to 50 MTPA) - Gevra Opencast Project",
+    "authority": "Ministry of Environment, Forest and Climate Change (MoEFCC), New Delhi",
+    "date": "18 October 2023",
+    "reg_reference": "Environment (Protection) Act, 1986 & EIA Notification 2006",
+    "mine_scope": "Gevra Opencast Project, South Eastern Coalfields Limited (SECL)",
+    "statutory_mandates": [
+      "Continuous ambient air quality monitoring stations (CAAQMS) for PM10, PM2.5, SO2, and NOx.",
+      "Controlled blasting using electronic delay detonators to maintain peak particle velocity (PPV) < 5 mm/s at nearest village.",
+      "100% water sprinkling through mist spray cannons along 14.2 km main haulage roads.",
+      "Progressive concurrent biological reclamation of external overburden dump."
+    ],
+    "severity_level": "Medium",
+    "compliance_deadline": "Annual Compliance Return (Form V)"
+  },
+  {
+    "doc_id": "DGMS-FORM-IV-2025-08",
+    "title": "Statutory Notice of Non-Fatal Serious Accident: Spontaneous Combustion Event at Heading 4",
+    "authority": "DGMS Eastern Zone Regional Office, Sitarampur",
+    "date": "12 May 2025",
+    "reg_reference": "Mines Act 1952, Section 23 & CMR 2017 Regulation 8",
+    "mine_scope": "Rajpura Coal Colliery / Jharia Deep Section L-3",
+    "statutory_mandates": [
+      "Temporary cessation of extraction at Section L-3 Heading 4 until nitrogen flushing completed.",
+      "Erection of 375mm thick explosion-proof isolation stopping seals with sampling inspection pipes.",
+      "Submission of gas chromatograph Graham's Ratio report to Regional Inspector within 48 hours."
+    ],
+    "severity_level": "High",
+    "compliance_deadline": "Immediate (Within 48 Hours)"
+  }
+]

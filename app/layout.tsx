@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "SafeMines – Mine Manager Dashboard",
+  title: "MineGuard – Mine Manager Dashboard",
   description: "Mining safety management dashboard",
 };
 

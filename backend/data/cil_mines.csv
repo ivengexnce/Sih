@@ -1,0 +1,13 @@
+mine_id,subsidiary,mine_name,coalfield,state,latitude,longitude,mine_type,seam_depth_m,capacity_mtpa,manpower,gassiness_degree,compliance_score,open_violations,spontaneous_combustion_risk
+MINE-01,SECL,Gevra Opencast Project,Korba Coalfield,Chhattisgarh,22.332,82.583,Opencast,120,52.5,3850,Degree I,94.2,3,Low
+MINE-02,SECL,Kusmunda Colliery,Korba Coalfield,Chhattisgarh,22.321,82.684,Opencast,145,50.0,3420,Degree I,91.8,5,Low
+MINE-03,BCCL,Jharia Deep Colliery,Jharia Coalfield,Jharkhand,23.748,86.418,Underground,380,4.2,2140,Degree III,82.4,8,High
+MINE-04,NCL,Nigahi Coal Project,Singrauli Coalfield,Madhya Pradesh,24.128,82.615,Opencast,180,21.0,2650,Degree I,95.5,2,Low
+MINE-05,NCL,Jayant Colliery,Singrauli Coalfield,Madhya Pradesh,24.175,82.651,Opencast,165,25.0,2900,Degree I,93.0,4,Low
+MINE-06,MCL,Bhubaneswari OCP,Talcher Coalfield,Odisha,20.941,85.182,Opencast,110,28.0,1980,Degree I,92.5,4,Medium
+MINE-07,MCL,Ananta Colliery,Talcher Coalfield,Odisha,20.915,85.148,Opencast,95,15.0,1720,Degree I,89.0,6,Medium
+MINE-08,ECL,Rajmahal Open Cast,Rajmahal Coalfield,Jharkhand,25.034,87.378,Opencast,130,17.0,2100,Degree I,88.5,5,Medium
+MINE-09,ECL,Raniganj Deep Mine (Chinakoori),Raniganj Coalfield,West Bengal,23.681,86.852,Underground,620,1.8,1850,Degree III,79.5,11,High
+MINE-10,CCL,Piparwar Colliery,North Karanpura Coalfield,Jharkhand,23.712,85.045,Opencast,140,16.0,1650,Degree I,91.0,4,Low
+MINE-11,WCL,Umrer Colliery,Nagpur Coalfield,Maharashtra,20.852,79.324,Opencast,125,3.5,1420,Degree I,90.2,5,Medium
+MINE-12,BCCL,Moonidih Underground Mine,Jharia Coalfield,Jharkhand,23.738,86.352,Underground,510,2.5,2800,Degree III,81.0,9,High

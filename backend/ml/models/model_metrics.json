@@ -1,0 +1,58 @@
+{
+  "model_type": "Optimized Soft-Voting Ensemble (Gradient Boosting + Random Forest)",
+  "test_accuracy": 97.67,
+  "total_samples": 3000,
+  "test_samples": 600,
+  "confusion_matrix": {
+    "labels": [
+      "High",
+      "Medium",
+      "Low"
+    ],
+    "matrix": [
+      [
+        128,
+        6,
+        0
+      ],
+      [
+        7,
+        389,
+        1
+      ],
+      [
+        0,
+        0,
+        69
+      ]
+    ]
+  },
+  "top_features": [
+    [
+      "gassiness_degree",
+      0.3338
+    ],
+    [
+      "co_ppm",
+      0.2378
+    ],
+    [
+      "open_violations",
+      0.1326
+    ],
+    [
+      "ch4_pct",
+      0.1296
+    ],
+    [
+      "gas_dispersion_index",
+      0.0896
+    ],
+    [
+      "ventilation_velocity_ms",
+      0.0452
+    ]
+  ],
+  "training_date": "September 2026",
+  "statutory_standards": "DGMS Coal Mines Regulations 2017"
+}
