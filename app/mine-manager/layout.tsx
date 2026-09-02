@@ -52,13 +52,19 @@ export default function MineManagerLayout({ children }: { children: React.ReactN
       {/* Sidebar */}
       <aside style={{ width: 216, minHeight: "100vh", background: "#0f2318", display: "flex", flexDirection: "column", flexShrink: 0 }}>
         <div style={{ padding: "20px 18px 16px", borderBottom: "1px solid rgba(255,255,255,0.08)" }}>
-          <Link href="/" style={{ display: "flex", alignItems: "center", gap: 10, textDecoration: "none" }}>
-            <div style={{ width: 36, height: 36, display: "flex", alignItems: "center", justifyContent: "center" }}>
-              <img src="/logo.webp" alt="MineGuard Logo" style={{ width: "100%", height: "100%", objectFit: "contain" }} />
+          <Link href="/" style={{ display: "flex", alignItems: "center", gap: 11, textDecoration: "none" }}>
+            <div style={{
+              width: 42, height: 42, borderRadius: 10,
+              background: "rgba(82,183,136,0.12)",
+              border: "1px solid rgba(82,183,136,0.30)",
+              display: "flex", alignItems: "center", justifyContent: "center",
+              boxShadow: "0 2px 8px rgba(0,0,0,0.3)"
+            }}>
+              <img src="/logo.webp" alt="MineGuard Logo" style={{ width: 30, height: 30, objectFit: "contain" }} />
             </div>
             <div>
-              <p style={{ color: "white", fontSize: 13.5, fontWeight: 700, letterSpacing: "0.04em" }}>MINEGUARD</p>
-              <p style={{ color: "rgba(255,255,255,0.4)", fontSize: 10, fontWeight: 500, letterSpacing: "0.06em" }}>MINE MANAGER</p>
+              <p style={{ color: "white", fontSize: 15, fontWeight: 800, letterSpacing: "0.03em", margin: 0, lineHeight: 1.2 }}>MINEGUARD</p>
+              <p style={{ color: "#52b788", fontSize: 10.5, fontWeight: 600, letterSpacing: "0.05em", margin: "2px 0 0 0" }}>MINE MANAGER</p>
             </div>
           </Link>
         </div>

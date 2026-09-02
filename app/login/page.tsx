@@ -230,16 +230,20 @@ function MineViz() {
 /* ─── Reusable field label ──────────────────────────────── */
 interface FieldProps {
   label: string;
+  required?: boolean;
   children: React.ReactNode;
 }
 
-function Field({ label, children }: FieldProps) {
+function Field({ label, required, children }: FieldProps) {
   return (
     <div style={{ marginBottom: 11 }}>
       <label style={{
         display: "block", fontSize: 11, fontWeight: 600,
         color: C.textSub, letterSpacing: "0.025em", marginBottom: 5,
-      }}>{label}</label>
+      }}>
+        {label}
+        {required && <span style={{ color: "#ef4444", marginLeft: 3, fontWeight: 700 }}>*</span>}
+      </label>
       {children}
     </div>
   );
@@ -700,6 +704,42 @@ function PersonaDock({ onPersonaClick }: PersonaDockProps) {
   );
 }
 
+/* ─── Statutory Indian Mobile Protocol Validator ────────── */
+function validateIndianMobile(rawPhone: string): { valid: boolean; error?: string; cleanNumber?: string; rawDigits?: string } {
+  if (!rawPhone || !rawPhone.trim()) {
+    return { valid: false, error: "Enter Valid Phone Number" };
+  }
+
+  // Remove country code (+91 or 91) if entered and any formatting spaces/dashes
+  let digits = rawPhone.trim().replace(/^(\+91|91)/, "").replace(/\D/g, "");
+
+  // 1. Strict 10-digit check
+  if (digits.length !== 10) {
+    return { valid: false, error: "Enter Valid Phone Number" };
+  }
+
+  // 2. Real Indian mobile numbering plan (starts with 6, 7, 8, or 9)
+  if (!/^[6-9]/.test(digits)) {
+    return { valid: false, error: "Enter Valid Phone Number" };
+  }
+
+  // 3. Reject dummy repetitive digits (e.g. 9999999999, 8888888888, 0000000000)
+  if (/^(\d)\1{9}$/.test(digits)) {
+    return { valid: false, error: "Enter Valid Phone Number" };
+  }
+
+  // 4. Reject trivial sequential test numbers (e.g. 1234567890)
+  if (digits === "1234567890" || digits === "0123456789") {
+    return { valid: false, error: "Enter Valid Phone Number" };
+  }
+
+  return {
+    valid: true,
+    cleanNumber: `+91 ${digits.slice(0, 5)} ${digits.slice(5)}`,
+    rawDigits: digits
+  };
+}
+
 /* ─── Statutory Two-Factor Verification Component ───────── */
 interface TwoFactorVerificationProps {
   verifyMethod: "phone" | "email";
@@ -954,13 +994,18 @@ export default function Login() {
   const [fullName, setFullName] = useState("");
   const [authId, setAuthId] = useState("");
   const [signupEmail, setSignupEmail] = useState("");
-  const [signupPhone, setSignupPhone] = useState("+91 ");
+  const [signupPhone, setSignupPhone] = useState("");
   const [signupPass, setSignupPass] = useState("");
   const [mine, setMine] = useState("SECL Gevra Mega Opencast");
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
   const [successMsg, setSuccessMsg] = useState("");
   const [showPw, setShowPw] = useState(false);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   // ── Two-Factor Authentication (2FA) State ──
   const [isVerifying, setIsVerifying] = useState(false);
@@ -1008,22 +1053,96 @@ export default function Login() {
     ? storageService.getAppointedManagerForMine(mine)
     : undefined;
 
-  /* ── form submit → triggers 2FA ── */
+  /* ── form submit → triggers 2FA ONLY IF PASSWORD IS VALID ── */
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (mode === "signup" && (!fullName || !signupEmail || !signupPass)) {
-      setErrorMsg("Please fill all required registration fields.");
-      return;
-    }
     setErrorMsg("");
+
+    // 1. REGISTRATION PROTOCOL CHECKS
+    if (mode === "signup") {
+      if (!fullName.trim()) {
+        setErrorMsg("Registration protocol: Full name & designation is mandatory.");
+        return;
+      }
+
+      if (!signupEmail.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(signupEmail.trim())) {
+        setErrorMsg("Registration protocol: Please provide a valid institutional email address.");
+        return;
+      }
+
+      // STRICT 10-DIGIT REAL MOBILE PROTOCOL
+      const phoneValidation = validateIndianMobile(signupPhone);
+      if (!phoneValidation.valid) {
+        setErrorMsg(phoneValidation.error || "Enter Valid Phone Number");
+        return;
+      }
+
+      if (!authId.trim()) {
+        setErrorMsg("Compliance protocol: Statutory DGMS Certificate / Authorization ID is mandatory.");
+        return;
+      }
+
+      if (!signupPass || signupPass.length < 6) {
+        setErrorMsg("Security protocol: Registration password must be at least 6 characters long.");
+        return;
+      }
+    }
+
+    // 2. SIGNIN PASSWORD PROTOCOL (ONLY PROCEED TO 2FA IF PASSWORD IS CORRECT)
+    if (mode === "signin") {
+      if (!password || !password.trim()) {
+        setErrorMsg("Password is required. Please enter your password to proceed.");
+        return;
+      }
+
+      const inputQuery = (email || "").trim().toLowerCase();
+      const queryDigits = inputQuery.replace(/^(\+91|91)/, "").replace(/\D/g, "");
+
+      // Look up existing registered accounts
+      const officers = storageService.getAllOfficers();
+      const matched = officers.find(o => {
+        const oEmail = (o.email || "").trim().toLowerCase();
+        const oPhoneDigits = (o.phone || "").replace(/^(\+91|91)/, "").replace(/\D/g, "");
+        return oEmail === inputQuery || (queryDigits.length === 10 && oPhoneDigits === queryDigits);
+      });
+
+      // Default demo role passwords & standard fallbacks
+      const validDemoPasswords: Record<string, string[]> = {
+        corporate: ["director123", "admin123", "cil2024", "mineguard"],
+        manager: ["manager123", "gevra123", "secl2024", "mineguard"],
+        inspector: ["inspector123", "dgms123", "safety2024", "mineguard"],
+      };
+
+      const acceptedPasswords = [
+        ...(validDemoPasswords[role] || []),
+        matched?.password,
+      ].filter(Boolean) as string[];
+
+      const isPasswordCorrect = acceptedPasswords.includes(password.trim());
+
+      if (!isPasswordCorrect) {
+        setErrorMsg(
+          `Incorrect password for ${roleConf.find(r => r.id === role)?.label}. Demo password is: ${role}123 (or your registered password).`
+        );
+        return; // STRICT BLOCK: DOES NOT PROCEED TO 2FA!
+      }
+    }
+
+    // ONLY REACHED IF PASSWORD & REGISTRATION PROTOCOLS ARE 100% VALID
     setLoading(true);
 
     const targetMine = role === "corporate" ? "All CIL Subsidiaries (National Scope)" : mine;
     const targetRoute = role === "corporate" ? "/corporate-admin" : role === "inspector" ? "/inspector" : "/mine-manager";
 
+    const verifiedPhone = mode === "signup"
+      ? validateIndianMobile(signupPhone).cleanNumber!
+      : (phone || (role === "corporate" ? "+91 98111 20490" : role === "manager" ? "+91 98765 43210" : "+91 87654 32109"));
+
     const officerSession: OfficerProfile = {
-      name: mode === "signup" ? fullName : (role === "corporate" ? "Corporate Director" : role === "manager" ? "Er. Rajesh Sharma" : "Inspector A. Smith"),
-      email: mode === "signup" ? signupEmail : (email || (role === "corporate" ? "director@coalindia.in" : role === "manager" ? "manager@secl.gov.in" : "inspector@dgms.gov.in")),
+      name: mode === "signup" ? fullName.trim() : (role === "corporate" ? "Corporate Director" : role === "manager" ? "Er. Rajesh Sharma" : "Inspector A. Smith"),
+      email: mode === "signup" ? signupEmail.trim() : (email || (role === "corporate" ? "director@coalindia.in" : role === "manager" ? "manager@secl.gov.in" : "inspector@dgms.gov.in")),
+      phone: verifiedPhone,
+      password: mode === "signup" ? signupPass : password,
       role,
       securityRole: role === "corporate" ? "Corporate Safety Directorate" : role === "manager" ? "First Class Colliery Manager" : "Statutory Safety Inspector",
       allocatedMine: targetMine,
@@ -1065,6 +1184,8 @@ export default function Login() {
         storageService.saveAccount({
           fullName: pendingSession.officerSession.name,
           email: pendingSession.officerSession.email,
+          phone: pendingSession.officerSession.phone,
+          password: pendingSession.officerSession.password,
           role: pendingSession.officerSession.role,
           securityRole: pendingSession.officerSession.securityRole,
           allocatedMine: pendingSession.targetMine,
@@ -1481,7 +1602,7 @@ export default function Login() {
           <form onSubmit={handleSubmit}>
 
             {mode === "signup" && (
-              <Field label="Full name & designation">
+              <Field label="Full name & designation" required>
                 <TextInput
                   required
                   placeholder="Er. Rajesh Kumar Sharma"
@@ -1496,7 +1617,7 @@ export default function Login() {
                 style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 14 }}>
                 <div>
                   <label style={{ display: "block", fontSize: 11.5, fontWeight: 600, color: C.textSub, marginBottom: 6 }}>
-                    Govt. email
+                    Govt. email <span style={{ color: "#ef4444", marginLeft: 3, fontWeight: 700 }}>*</span>
                   </label>
                   <TextInput
                     type="email" required
@@ -1507,20 +1628,21 @@ export default function Login() {
                 </div>
                 <div>
                   <label style={{ display: "block", fontSize: 11.5, fontWeight: 600, color: C.textSub, marginBottom: 6 }}>
-                    Registered mobile
+                    Registered mobile <span style={{ color: "#ef4444", marginLeft: 3, fontWeight: 700 }}>*</span>
                   </label>
                   <TextInput
                     type="tel" required
-                    placeholder="+91 98765 43210"
+                    maxLength={10}
+                    placeholder="9876543210"
                     value={signupPhone}
-                    onChange={e => setSignupPhone(e.target.value)}
+                    onChange={e => setSignupPhone(e.target.value.replace(/\D/g, "").slice(0, 10))}
                     iconLeft={Ico.phone} />
                 </div>
               </div>
             )}
 
             {mode === "signup" && (
-              <Field label="DGMS Statutory Auth ID">
+              <Field label="DGMS Statutory Auth ID" required>
                 <TextInput
                   required
                   placeholder={role === "corporate" ? "CIL-DIR-9021" : role === "manager" ? "DGMS-FCC-7721" : "DGMS-INSP-4011"}
@@ -1531,7 +1653,7 @@ export default function Login() {
             )}
 
             {mode === "signin" && (
-              <Field label="Official email or registered mobile (+91)">
+              <Field label="Official email or registered mobile (+91)" required>
                 <TextInput
                   placeholder={role === "corporate" ? "director@coalindia.in or +91 98111 20490" : role === "manager" ? "manager@secl.gov.in or +91 98765 43210" : "inspector@dgms.gov.in or +91 87654 32109"}
                   value={email}
@@ -1545,7 +1667,7 @@ export default function Login() {
               </Field>
             )}
 
-            <Field label="Password">
+            <Field label={mode === "signin" ? "Password" : "Create statutory password (min 6 chars)"} required>
               <TextInput
                 type={showPw ? "text" : "password"}
                 required
@@ -1555,11 +1677,21 @@ export default function Login() {
                 iconLeft={Ico.lock}
                 iconRight={Ico.eye(showPw)}
                 onRightClick={() => setShowPw(!showPw)} />
+              {mounted && mode === "signin" && (
+                <div suppressHydrationWarning style={{ marginTop: 6, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  <span style={{ fontSize: 11, color: C.textSub }}>
+                    Demo password: <strong style={{ color: C.accentBright, letterSpacing: "0.02em" }}>{role}123</strong>
+                  </span>
+                  <span style={{ fontSize: 10, color: C.accent, background: C.accentDim, padding: "1px 6px", borderRadius: 4, fontWeight: 700, border: `1px solid ${C.accentStrong}` }}>
+                    PASSWORD VERIFIED 2FA
+                  </span>
+                </div>
+              )}
             </Field>
 
             {/* mine / scope selector */}
             {role !== "corporate" ? (
-              <Field label="Allocated mine / colliery">
+              <Field label="Allocated mine / colliery" required>
                 <div style={{ position: "relative" }}>
                   <span style={{
                     position: "absolute", left: 13, top: "50%", transform: "translateY(-50%)",

@@ -7,6 +7,8 @@ export interface OfficerProfile {
   id?: string;
   name: string;
   email: string;
+  phone?: string;
+  password?: string;
   role: "corporate" | "manager" | "inspector" | string;
   securityRole: string;
   allocatedMine: string;
@@ -272,6 +274,8 @@ class StorageService {
     this.saveOfficerAccount({
       name: account.fullName || account.name,
       email: account.email,
+      phone: account.phone,
+      password: account.password,
       role: account.role,
       securityRole: account.securityRole || "Officer",
       allocatedMine: account.allocatedMine || "Rajpura Coal Mine (SECL)",
