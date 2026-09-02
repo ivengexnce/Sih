@@ -988,6 +988,8 @@ function TwoFactorVerification({
 export default function Login() {
   const [mode, setMode] = useState<"signin" | "signup">("signin");
   const [role, setRole] = useState<"corporate" | "manager" | "inspector">("manager");
+  const [signinMethod, setSigninMethod] = useState<"email" | "phone">("email");
+  const [signinPhone, setSigninPhone] = useState("9876543210");
   const [email, setEmail] = useState("manager@secl.gov.in");
   const [phone, setPhone] = useState("+91 98765 43210");
   const [password, setPassword] = useState("");
@@ -1033,12 +1035,15 @@ export default function Login() {
     if (newRole === "corporate") {
       setEmail("director@coalindia.in");
       setPhone("+91 98111 20490");
+      setSigninPhone("9811120490");
     } else if (newRole === "manager") {
       setEmail("manager@secl.gov.in");
       setPhone("+91 98765 43210");
+      setSigninPhone("9876543210");
     } else {
       setEmail("inspector@dgms.gov.in");
       setPhone("+91 87654 32109");
+      setSigninPhone("8765432109");
     }
   };
 
@@ -1493,391 +1498,391 @@ export default function Login() {
             <>
               {/* heading */}
               <div style={{ marginBottom: 16 }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 4 }}>
-              <h2 style={{
-                color: C.text, fontSize: 22, fontWeight: 800,
-                letterSpacing: "-0.02em", lineHeight: 1, margin: 0,
-              }}>
-                {mode === "signin" ? "Officer sign in" : "New registration"}
-              </h2>
-              <Pill color={C.accent}>SECURE</Pill>
-            </div>
-            <p style={{ color: C.textSub, fontSize: 12.5, margin: "4px 0 0 0" }}>
-              {mode === "signin"
-                ? "Access your allocated mine portal."
-                : "Register as a statutory officer."}
-            </p>
-          </div>
-
-          {/* mode toggle */}
-          <div style={{
-            display: "flex",
-            background: C.surface, border: `1px solid ${C.border}`,
-            borderRadius: 10, padding: 3, marginBottom: 14, gap: 4,
-          }}>
-            {([
-              { id: "signin" as const, label: "Sign in" },
-              { id: "signup" as const, label: "Register" },
-            ] as const).map(m => (
-              <button key={m.id} type="button"
-                onClick={() => { setMode(m.id); setErrorMsg(""); setSuccessMsg(""); }}
-                style={{
-                  flex: 1, padding: "8px 10px", borderRadius: 7,
-                  background: mode === m.id ? C.accent : "transparent",
-                  color: mode === m.id ? "#040d06" : C.textMuted,
-                  fontSize: 12.5, fontWeight: 700, border: "none", cursor: "pointer",
-                  transition: "all 0.15s",
-                  boxShadow: mode === m.id ? `0 2px 10px ${C.accentGlow}` : "none",
-                }}>
-                {m.label}
-              </button>
-            ))}
-          </div>
-
-          {/* alerts */}
-          {errorMsg && (
-            <div style={{
-              display: "flex", alignItems: "center", gap: 9,
-              padding: "9px 12px", borderRadius: 8, marginBottom: 12,
-              background: C.errorDim, border: `1px solid rgba(248,113,113,0.25)`,
-              color: "#fca5a5", fontSize: 12.5,
-            }}>
-              {Ico.alert}{errorMsg}
-            </div>
-          )}
-          {successMsg && (
-            <div style={{
-              display: "flex", alignItems: "center", gap: 9,
-              padding: "9px 12px", borderRadius: 8, marginBottom: 12,
-              background: "rgba(82,183,136,0.08)",
-              border: `1px solid rgba(82,183,136,0.30)`,
-              color: C.accentBright, fontSize: 12.5,
-            }}>
-              {Ico.check}{successMsg}
-            </div>
-          )}
-
-          {/* ── role selector ── */}
-          <div style={{ marginBottom: 14 }}>
-            <label style={{
-              display: "block", fontSize: 11, fontWeight: 600,
-              color: C.textSub, letterSpacing: "0.025em", marginBottom: 7,
-            }}>Operational role</label>
-            <div className="role-selector-3col" style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 7 }}>
-              {roleConf.map(r => {
-                const act = role === r.id;
-                return (
-                  <button key={r.id} type="button" onClick={() => handleRoleSelect(r.id)}
-                    className="role-btn-inner"
-                    style={{
-                      padding: "10px 6px 9px", borderRadius: 10, cursor: "pointer",
-                      display: "flex", flexDirection: "column", alignItems: "center", gap: 5,
-                      background: act ? "rgba(82,183,136,0.10)" : C.surfaceUp,
-                      border: `1.5px solid ${act ? C.accent : C.border}`,
-                      transition: "all 0.13s",
-                      boxShadow: act ? `0 0 0 1px ${C.accentGlow}, 0 4px 14px rgba(82,183,136,0.08)` : "none",
-                      outline: "none",
-                    }}>
-                    <span style={{ color: act ? C.accent : C.textMuted, display: "flex", transition: "color 0.13s" }}>
-                      {r.icon}
-                    </span>
-                    <span style={{ fontSize: 11.5, fontWeight: 700, color: act ? C.text : C.textSub, textAlign: "center" }}>
-                      {r.label}
-                    </span>
-                    <span style={{
-                      fontSize: 9.5, fontWeight: 600,
-                      color: act ? C.accent : C.textMuted,
-                      background: act ? "rgba(82,183,136,0.12)" : "transparent",
-                      padding: "1px 6px", borderRadius: 20,
-                      border: act ? `1px solid rgba(82,183,136,0.25)` : "1px solid transparent",
-                      transition: "all 0.13s", textAlign: "center",
-                    }}>{r.sub}</span>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* ── form ── */}
-          <form onSubmit={handleSubmit}>
-
-            {mode === "signup" && (
-              <Field label="Full name & designation" required>
-                <TextInput
-                  required
-                  placeholder="Er. Rajesh Kumar Sharma"
-                  value={fullName}
-                  onChange={e => setFullName(e.target.value)}
-                  iconLeft={Ico.user} />
-              </Field>
-            )}
-
-            {mode === "signup" && (
-              <div className="signup-row-2col"
-                style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 14 }}>
-                <div>
-                  <label style={{ display: "block", fontSize: 11.5, fontWeight: 600, color: C.textSub, marginBottom: 6 }}>
-                    Govt. email <span style={{ color: "#ef4444", marginLeft: 3, fontWeight: 700 }}>*</span>
-                  </label>
-                  <TextInput
-                    type="email" required
-                    placeholder="name@coalindia.in"
-                    value={signupEmail}
-                    onChange={e => setSignupEmail(e.target.value)}
-                    iconLeft={Ico.mail} />
+                <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 4 }}>
+                  <h2 style={{
+                    color: C.text, fontSize: 22, fontWeight: 800,
+                    letterSpacing: "-0.02em", lineHeight: 1, margin: 0,
+                  }}>
+                    {mode === "signin" ? "Officer sign in" : "New registration"}
+                  </h2>
+                  <Pill color={C.accent}>SECURE</Pill>
                 </div>
-                <div>
-                  <label style={{ display: "block", fontSize: 11.5, fontWeight: 600, color: C.textSub, marginBottom: 6 }}>
-                    Registered mobile <span style={{ color: "#ef4444", marginLeft: 3, fontWeight: 700 }}>*</span>
-                  </label>
-                  <TextInput
-                    type="tel" required
-                    maxLength={10}
-                    placeholder="9876543210"
-                    value={signupPhone}
-                    onChange={e => setSignupPhone(e.target.value.replace(/\D/g, "").slice(0, 10))}
-                    iconLeft={Ico.phone} />
-                </div>
+                <p style={{ color: C.textSub, fontSize: 12.5, margin: "4px 0 0 0" }}>
+                  {mode === "signin"
+                    ? "Access your allocated mine portal."
+                    : "Register as a statutory officer."}
+                </p>
               </div>
-            )}
 
-            {mode === "signup" && (
-              <Field label="DGMS Statutory Auth ID" required>
-                <TextInput
-                  required
-                  placeholder={role === "corporate" ? "CIL-DIR-9021" : role === "manager" ? "DGMS-FCC-7721" : "DGMS-INSP-4011"}
-                  value={authId}
-                  onChange={e => setAuthId(e.target.value)}
-                  iconLeft={Ico.id} />
-              </Field>
-            )}
+              {/* mode toggle */}
+              <div style={{
+                display: "flex",
+                background: C.surface, border: `1px solid ${C.border}`,
+                borderRadius: 10, padding: 3, marginBottom: 14, gap: 4,
+              }}>
+                {([
+                  { id: "signin" as const, label: "Sign in" },
+                  { id: "signup" as const, label: "Register" },
+                ] as const).map(m => (
+                  <button key={m.id} type="button"
+                    onClick={() => { setMode(m.id); setErrorMsg(""); setSuccessMsg(""); }}
+                    style={{
+                      flex: 1, padding: "8px 10px", borderRadius: 7,
+                      background: mode === m.id ? C.accent : "transparent",
+                      color: mode === m.id ? "#040d06" : C.textMuted,
+                      fontSize: 12.5, fontWeight: 700, border: "none", cursor: "pointer",
+                      transition: "all 0.15s",
+                      boxShadow: mode === m.id ? `0 2px 10px ${C.accentGlow}` : "none",
+                    }}>
+                    {m.label}
+                  </button>
+                ))}
+              </div>
 
-            {mode === "signin" && (
-              <Field label="Official email or registered mobile (+91)" required>
-                <TextInput
-                  placeholder={role === "corporate" ? "director@coalindia.in or +91 98111 20490" : role === "manager" ? "manager@secl.gov.in or +91 98765 43210" : "inspector@dgms.gov.in or +91 87654 32109"}
-                  value={email}
-                  onChange={e => {
-                    setEmail(e.target.value);
-                    if (e.target.value.includes("+91") || /^\d+$/.test(e.target.value.replace(/\s+/g, ""))) {
-                      setPhone(e.target.value);
-                    }
-                  }}
-                  iconLeft={Ico.user} />
-              </Field>
-            )}
-
-            <Field label={mode === "signin" ? "Password" : "Create statutory password (min 6 chars)"} required>
-              <TextInput
-                type={showPw ? "text" : "password"}
-                required
-                placeholder="••••••••"
-                value={mode === "signin" ? password : signupPass}
-                onChange={e => mode === "signin" ? setPassword(e.target.value) : setSignupPass(e.target.value)}
-                iconLeft={Ico.lock}
-                iconRight={Ico.eye(showPw)}
-                onRightClick={() => setShowPw(!showPw)} />
-              {mounted && mode === "signin" && (
-                <div suppressHydrationWarning style={{ marginTop: 6, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                  <span style={{ fontSize: 11, color: C.textSub }}>
-                    Demo password: <strong style={{ color: C.accentBright, letterSpacing: "0.02em" }}>{role}123</strong>
-                  </span>
-                  <span style={{ fontSize: 10, color: C.accent, background: C.accentDim, padding: "1px 6px", borderRadius: 4, fontWeight: 700, border: `1px solid ${C.accentStrong}` }}>
-                    PASSWORD VERIFIED 2FA
-                  </span>
+              {/* alerts */}
+              {errorMsg && (
+                <div style={{
+                  display: "flex", alignItems: "center", gap: 9,
+                  padding: "9px 12px", borderRadius: 8, marginBottom: 12,
+                  background: C.errorDim, border: `1px solid rgba(248,113,113,0.25)`,
+                  color: "#fca5a5", fontSize: 12.5,
+                }}>
+                  {Ico.alert}{errorMsg}
                 </div>
               )}
-            </Field>
-
-            {/* mine / scope selector */}
-            {role !== "corporate" ? (
-              <Field label="Allocated mine / colliery" required>
-                <div style={{ position: "relative" }}>
-                  <span style={{
-                    position: "absolute", left: 13, top: "50%", transform: "translateY(-50%)",
-                    color: C.accent, display: "flex", pointerEvents: "none",
-                  }}>{Ico.pin}</span>
-                  <select value={mine} onChange={e => setMine(e.target.value)} style={{
-                    width: "100%", boxSizing: "border-box",
-                    padding: "12px 38px 12px 42px",
-                    background: C.surfaceUp,
-                    border: `1.5px solid ${C.borderFocus}`,
-                    borderRadius: 10, color: C.text, fontSize: 13,
-                    outline: "none", cursor: "pointer", appearance: "none",
-                  }}>
-                    {MINES.map(m => (
-                      <option key={m.id} value={m.name}
-                        style={{ background: "#0c160e", color: "#eef7f1" }}>
-                        {m.name} · {m.state}
-                      </option>
-                    ))}
-                  </select>
-                  <span style={{
-                    position: "absolute", right: 12, top: "50%", transform: "translateY(-50%)",
-                    color: C.textMuted, pointerEvents: "none",
-                  }}>{Ico.chev}</span>
+              {successMsg && (
+                <div style={{
+                  display: "flex", alignItems: "center", gap: 9,
+                  padding: "9px 12px", borderRadius: 8, marginBottom: 12,
+                  background: "rgba(82,183,136,0.08)",
+                  border: `1px solid rgba(82,183,136,0.30)`,
+                  color: C.accentBright, fontSize: 12.5,
+                }}>
+                  {Ico.check}{successMsg}
                 </div>
+              )}
 
-                {selMine && (
-                  <div style={{
-                    marginTop: 6, padding: "7px 12px",
-                    background: "rgba(82,183,136,0.07)",
-                    border: `1px solid ${C.borderMid}`,
-                    borderRadius: 7, display: "flex", alignItems: "center", gap: 8,
-                  }}>
-                    <span style={{ color: C.accent, display: "flex" }}>
-                      <svg width={11} height={11} viewBox="0 0 24 24" fill="currentColor"><circle cx={12} cy={12} r={5} /></svg>
-                    </span>
-                    <span style={{ fontSize: 11.5, color: C.textSub }}>
-                      {selMine.type} &nbsp;·&nbsp; {selMine.state}
-                    </span>
+              {/* ── role selector ── */}
+              <div style={{ marginBottom: 14 }}>
+                <label style={{
+                  display: "block", fontSize: 11, fontWeight: 600,
+                  color: C.textSub, letterSpacing: "0.025em", marginBottom: 7,
+                }}>Operational role</label>
+                <div className="role-selector-3col" style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 7 }}>
+                  {roleConf.map(r => {
+                    const act = role === r.id;
+                    return (
+                      <button key={r.id} type="button" onClick={() => handleRoleSelect(r.id)}
+                        className="role-btn-inner"
+                        style={{
+                          padding: "10px 6px 9px", borderRadius: 10, cursor: "pointer",
+                          display: "flex", flexDirection: "column", alignItems: "center", gap: 5,
+                          background: act ? "rgba(82,183,136,0.10)" : C.surfaceUp,
+                          border: `1.5px solid ${act ? C.accent : C.border}`,
+                          transition: "all 0.13s",
+                          boxShadow: act ? `0 0 0 1px ${C.accentGlow}, 0 4px 14px rgba(82,183,136,0.08)` : "none",
+                          outline: "none",
+                        }}>
+                        <span style={{ color: act ? C.accent : C.textMuted, display: "flex", transition: "color 0.13s" }}>
+                          {r.icon}
+                        </span>
+                        <span style={{ fontSize: 11.5, fontWeight: 700, color: act ? C.text : C.textSub, textAlign: "center" }}>
+                          {r.label}
+                        </span>
+                        <span style={{
+                          fontSize: 9.5, fontWeight: 600,
+                          color: act ? C.accent : C.textMuted,
+                          background: act ? "rgba(82,183,136,0.12)" : "transparent",
+                          padding: "1px 6px", borderRadius: 20,
+                          border: act ? `1px solid rgba(82,183,136,0.25)` : "1px solid transparent",
+                          transition: "all 0.13s", textAlign: "center",
+                        }}>{r.sub}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* ── form ── */}
+              <form onSubmit={handleSubmit}>
+
+                {mode === "signup" && (
+                  <Field label="Full name & designation" required>
+                    <TextInput
+                      required
+                      placeholder="Er. Rajesh Kumar Sharma"
+                      value={fullName}
+                      onChange={e => setFullName(e.target.value)}
+                      iconLeft={Ico.user} />
+                  </Field>
+                )}
+
+                {mode === "signup" && (
+                  <div className="signup-row-2col"
+                    style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 14 }}>
+                    <div>
+                      <label style={{ display: "block", fontSize: 11.5, fontWeight: 600, color: C.textSub, marginBottom: 6 }}>
+                        Govt. email <span style={{ color: "#ef4444", marginLeft: 3, fontWeight: 700 }}>*</span>
+                      </label>
+                      <TextInput
+                        type="email" required
+                        placeholder="name@coalindia.in"
+                        value={signupEmail}
+                        onChange={e => setSignupEmail(e.target.value)}
+                        iconLeft={Ico.mail} />
+                    </div>
+                    <div>
+                      <label style={{ display: "block", fontSize: 11.5, fontWeight: 600, color: C.textSub, marginBottom: 6 }}>
+                        Registered mobile <span style={{ color: "#ef4444", marginLeft: 3, fontWeight: 700 }}>*</span>
+                      </label>
+                      <TextInput
+                        type="tel" required
+                        maxLength={10}
+                        placeholder="9876543210"
+                        value={signupPhone}
+                        onChange={e => setSignupPhone(e.target.value.replace(/\D/g, "").slice(0, 10))}
+                        iconLeft={Ico.phone} />
+                    </div>
                   </div>
                 )}
 
-                {appointedManager && (
-                  <div style={{
-                    marginTop: 10, padding: "11px 14px",
-                    background: "rgba(240,192,64,0.10)",
-                    border: `1.5px solid rgba(240,192,64,0.30)`,
-                    borderRadius: 9,
-                    display: "flex", alignItems: "flex-start", gap: 10,
-                  }}>
-                    <span style={{ color: C.warning, flexShrink: 0, marginTop: 1 }}>{Ico.warn}</span>
-                    <div>
-                      <div style={{ color: C.warning, fontSize: 12, fontWeight: 700, marginBottom: 2 }}>
-                        CMR 2017 Reg. 27 Statutory Conflict Alert
+                {mode === "signup" && (
+                  <Field label="DGMS Statutory Auth ID" required>
+                    <TextInput
+                      required
+                      placeholder={role === "corporate" ? "CIL-DIR-9021" : role === "manager" ? "DGMS-FCC-7721" : "DGMS-INSP-4011"}
+                      value={authId}
+                      onChange={e => setAuthId(e.target.value)}
+                      iconLeft={Ico.id} />
+                  </Field>
+                )}
+
+                {mode === "signin" && (
+                  <Field label="Official email or registered mobile (+91)" required>
+                    <TextInput
+                      placeholder={role === "corporate" ? "director@coalindia.in or +91 98111 20490" : role === "manager" ? "manager@secl.gov.in or +91 98765 43210" : "inspector@dgms.gov.in or +91 87654 32109"}
+                      value={email}
+                      onChange={e => {
+                        setEmail(e.target.value);
+                        if (e.target.value.includes("+91") || /^\d+$/.test(e.target.value.replace(/\s+/g, ""))) {
+                          setPhone(e.target.value);
+                        }
+                      }}
+                      iconLeft={Ico.user} />
+                  </Field>
+                )}
+
+                <Field label={mode === "signin" ? "Password" : "Create statutory password (min 6 chars)"} required>
+                  <TextInput
+                    type={showPw ? "text" : "password"}
+                    required
+                    placeholder="••••••••"
+                    value={mode === "signin" ? password : signupPass}
+                    onChange={e => mode === "signin" ? setPassword(e.target.value) : setSignupPass(e.target.value)}
+                    iconLeft={Ico.lock}
+                    iconRight={Ico.eye(showPw)}
+                    onRightClick={() => setShowPw(!showPw)} />
+                  {mounted && mode === "signin" && (
+                    <div suppressHydrationWarning style={{ marginTop: 6, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                      <span style={{ fontSize: 11, color: C.textSub }}>
+                        Demo password: <strong style={{ color: C.accentBright, letterSpacing: "0.02em" }}>{role}123</strong>
+                      </span>
+                      <span style={{ fontSize: 10, color: C.accent, background: C.accentDim, padding: "1px 6px", borderRadius: 4, fontWeight: 700, border: `1px solid ${C.accentStrong}` }}>
+                        PASSWORD VERIFIED 2FA
+                      </span>
+                    </div>
+                  )}
+                </Field>
+
+                {/* mine / scope selector */}
+                {role !== "corporate" ? (
+                  <Field label="Allocated mine / colliery" required>
+                    <div style={{ position: "relative" }}>
+                      <span style={{
+                        position: "absolute", left: 13, top: "50%", transform: "translateY(-50%)",
+                        color: C.accent, display: "flex", pointerEvents: "none",
+                      }}>{Ico.pin}</span>
+                      <select value={mine} onChange={e => setMine(e.target.value)} style={{
+                        width: "100%", boxSizing: "border-box",
+                        padding: "12px 38px 12px 42px",
+                        background: C.surfaceUp,
+                        border: `1.5px solid ${C.borderFocus}`,
+                        borderRadius: 10, color: C.text, fontSize: 13,
+                        outline: "none", cursor: "pointer", appearance: "none",
+                      }}>
+                        {MINES.map(m => (
+                          <option key={m.id} value={m.name}
+                            style={{ background: "#0c160e", color: "#eef7f1" }}>
+                            {m.name} · {m.state}
+                          </option>
+                        ))}
+                      </select>
+                      <span style={{
+                        position: "absolute", right: 12, top: "50%", transform: "translateY(-50%)",
+                        color: C.textMuted, pointerEvents: "none",
+                      }}>{Ico.chev}</span>
+                    </div>
+
+                    {selMine && (
+                      <div style={{
+                        marginTop: 6, padding: "7px 12px",
+                        background: "rgba(82,183,136,0.07)",
+                        border: `1px solid ${C.borderMid}`,
+                        borderRadius: 7, display: "flex", alignItems: "center", gap: 8,
+                      }}>
+                        <span style={{ color: C.accent, display: "flex" }}>
+                          <svg width={11} height={11} viewBox="0 0 24 24" fill="currentColor"><circle cx={12} cy={12} r={5} /></svg>
+                        </span>
+                        <span style={{ fontSize: 11.5, color: C.textSub }}>
+                          {selMine.type} &nbsp;·&nbsp; {selMine.state}
+                        </span>
                       </div>
-                      <div style={{ color: "#d9c57d", fontSize: 11, lineHeight: 1.45 }}>
-                        <strong>{mine}</strong> currently has an appointed statutory Mine Manager:{" "}
-                        <strong>{appointedManager.name}</strong> ({appointedManager.officialId || appointedManager.certType}).
-                        <br />
-                        Under CMR 2017 Regulation 27, only <strong>one manager</strong> can hold legal charge.
-                        Registering here will log an appointment succession / transfer application for Corporate Director review.
+                    )}
+
+                    {appointedManager && (
+                      <div style={{
+                        marginTop: 10, padding: "11px 14px",
+                        background: "rgba(240,192,64,0.10)",
+                        border: `1.5px solid rgba(240,192,64,0.30)`,
+                        borderRadius: 9,
+                        display: "flex", alignItems: "flex-start", gap: 10,
+                      }}>
+                        <span style={{ color: C.warning, flexShrink: 0, marginTop: 1 }}>{Ico.warn}</span>
+                        <div>
+                          <div style={{ color: C.warning, fontSize: 12, fontWeight: 700, marginBottom: 2 }}>
+                            CMR 2017 Reg. 27 Statutory Conflict Alert
+                          </div>
+                          <div style={{ color: "#d9c57d", fontSize: 11, lineHeight: 1.45 }}>
+                            <strong>{mine}</strong> currently has an appointed statutory Mine Manager:{" "}
+                            <strong>{appointedManager.name}</strong> ({appointedManager.officialId || appointedManager.certType}).
+                            <br />
+                            Under CMR 2017 Regulation 27, only <strong>one manager</strong> can hold legal charge.
+                            Registering here will log an appointment succession / transfer application for Corporate Director review.
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </Field>
+                ) : (
+                  <div style={{
+                    padding: "13px 15px", marginBottom: 18,
+                    background: "rgba(82,183,136,0.07)",
+                    border: `1px solid ${C.borderMid}`,
+                    borderRadius: 11,
+                    display: "flex", alignItems: "flex-start", gap: 12,
+                  }}>
+                    <span style={{ color: C.accent, flexShrink: 0, marginTop: 1 }}>{Ico.globe}</span>
+                    <div>
+                      <div style={{ color: C.text, fontSize: 13, fontWeight: 700, marginBottom: 3 }}>
+                        Pan-India access scope
+                      </div>
+                      <div style={{ color: C.textSub, fontSize: 12, lineHeight: 1.5 }}>
+                        Corporate directors oversee all 8 CIL subsidiaries across India.
                       </div>
                     </div>
                   </div>
                 )}
-              </Field>
-            ) : (
-              <div style={{
-                padding: "13px 15px", marginBottom: 18,
-                background: "rgba(82,183,136,0.07)",
-                border: `1px solid ${C.borderMid}`,
-                borderRadius: 11,
-                display: "flex", alignItems: "flex-start", gap: 12,
-              }}>
-                <span style={{ color: C.accent, flexShrink: 0, marginTop: 1 }}>{Ico.globe}</span>
-                <div>
-                  <div style={{ color: C.text, fontSize: 13, fontWeight: 700, marginBottom: 3 }}>
-                    Pan-India access scope
+
+                {/* CMR notice — signup only, no conflict */}
+                {mode === "signup" && !appointedManager && (
+                  <div style={{
+                    padding: "9px 12px", marginBottom: 12,
+                    background: C.warningDim,
+                    border: `1px solid rgba(240,192,64,0.22)`,
+                    borderRadius: 9,
+                    display: "flex", alignItems: "flex-start", gap: 9,
+                  }}>
+                    <span style={{ color: C.warning, flexShrink: 0, marginTop: 1 }}>{Ico.warn}</span>
+                    <div>
+                      <div style={{ color: C.warning, fontSize: 11.5, fontWeight: 700, marginBottom: 2 }}>
+                        CMR 2017 Reg. 27 — Statutory mandate
+                      </div>
+                      <div style={{ color: "#c8b264", fontSize: 11, lineHeight: 1.45 }}>
+                        Only one statutory Mine Manager per colliery. Your credentials will be registered with the Colliery Safety Directorate.
+                      </div>
+                    </div>
                   </div>
-                  <div style={{ color: C.textSub, fontSize: 12, lineHeight: 1.5 }}>
-                    Corporate directors oversee all 8 CIL subsidiaries across India.
-                  </div>
-                </div>
+                )}
+
+                {/* CTA */}
+                <button type="submit" disabled={loading} style={{
+                  width: "100%", padding: "12px 14px",
+                  background: loading
+                    ? C.surfaceHigh
+                    : `linear-gradient(135deg, ${C.accentBright} 0%, ${C.accent} 60%, #3da572 100%)`,
+                  color: loading ? C.textMuted : "#040d06",
+                  border: "none", borderRadius: 10,
+                  fontSize: 14, fontWeight: 800,
+                  cursor: loading ? "not-allowed" : "pointer",
+                  display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+                  letterSpacing: "-0.01em",
+                  transition: "opacity 0.15s, transform 0.1s",
+                  boxShadow: loading ? "none" : `0 4px 20px rgba(82,183,136,0.28), 0 1px 4px rgba(0,0,0,0.4)`,
+                }}
+                  onMouseDown={e => { if (!loading) e.currentTarget.style.transform = "scale(0.98)"; }}
+                  onMouseUp={e => { e.currentTarget.style.transform = "scale(1)"; }}
+                  onMouseLeave={e => { e.currentTarget.style.transform = "scale(1)"; }}
+                >
+                  {loading
+                    ? <>{Ico.spin} Initializing 2FA gateway…</>
+                    : <>{mode === "signin" ? "Proceed to 2FA verification" : "Verify & register officer"} {Ico.arr}</>}
+                </button>
+              </form>
+
+              {/* ── quick demo access ── */}
+              <div style={{ display: "flex", alignItems: "center", gap: 10, margin: "16px 0 10px" }}>
+                <div style={{ flex: 1, height: 1, background: C.border }} />
+                <span style={{ color: C.textDim, fontSize: 10, fontWeight: 700, letterSpacing: "0.05em" }}>
+                  QUICK DEMO ACCESS
+                </span>
+                <div style={{ flex: 1, height: 1, background: C.border }} />
               </div>
-            )}
 
-            {/* CMR notice — signup only, no conflict */}
-            {mode === "signup" && !appointedManager && (
-              <div style={{
-                padding: "9px 12px", marginBottom: 12,
-                background: C.warningDim,
-                border: `1px solid rgba(240,192,64,0.22)`,
-                borderRadius: 9,
-                display: "flex", alignItems: "flex-start", gap: 9,
-              }}>
-                <span style={{ color: C.warning, flexShrink: 0, marginTop: 1 }}>{Ico.warn}</span>
-                <div>
-                  <div style={{ color: C.warning, fontSize: 11.5, fontWeight: 700, marginBottom: 2 }}>
-                    CMR 2017 Reg. 27 — Statutory mandate
-                  </div>
-                  <div style={{ color: "#c8b264", fontSize: 11, lineHeight: 1.45 }}>
-                    Only one statutory Mine Manager per colliery. Your credentials will be registered with the Colliery Safety Directorate.
-                  </div>
-                </div>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 9 }}>
+                {[
+                  { href: "/corporate-admin", iconImg: "/icons/corporate.webp", label: "Corporate HQ", sub: "All mines", role: "corporate" as const, mine: "All CIL Subsidiaries (National Scope)" },
+                  { href: "/mine-manager", iconImg: "/icons/manager.webp", label: "Mine manager", sub: "Gevra OCP", role: "manager" as const, mine: "SECL Gevra Mega Opencast" },
+                  { href: "/inspector", iconImg: "/icons/inspector.webp", label: "Safety beat", sub: "Inspector view", role: "inspector" as const, mine: "SECL Gevra Mega Opencast" },
+                ].map(d => (
+                  <button
+                    key={d.href}
+                    type="button"
+                    onClick={() => handleDemoClick(d.role, d.mine, d.href)}
+                    style={{
+                      padding: "12px 8px 11px",
+                      background: C.surfaceUp,
+                      border: `1px solid ${C.border}`,
+                      borderRadius: 10,
+                      cursor: "pointer",
+                      display: "flex", flexDirection: "column", alignItems: "center", gap: 7,
+                      transition: "border-color 0.12s, background 0.12s, transform 0.1s",
+                      fontFamily: "inherit",
+                    }}
+                    onMouseEnter={e => {
+                      e.currentTarget.style.borderColor = C.accent;
+                      e.currentTarget.style.background = C.surfaceHigh;
+                      e.currentTarget.style.transform = "translateY(-1px)";
+                    }}
+                    onMouseLeave={e => {
+                      e.currentTarget.style.borderColor = C.border;
+                      e.currentTarget.style.background = C.surfaceUp;
+                      e.currentTarget.style.transform = "translateY(0)";
+                    }}
+                  >
+                    <div style={{
+                      width: 44, height: 44, borderRadius: 10,
+                      background: "rgba(82,183,136,0.12)",
+                      border: `1px solid rgba(82,183,136,0.30)`,
+                      display: "flex", alignItems: "center", justifyContent: "center",
+                      boxShadow: "0 2px 8px rgba(0,0,0,0.25)"
+                    }}>
+                      <img src={d.iconImg} alt={d.label} style={{ width: 32, height: 32, objectFit: "contain" }} />
+                    </div>
+                    <span style={{ fontSize: 12.5, fontWeight: 800, color: C.text, textAlign: "center", lineHeight: 1.2 }}>{d.label}</span>
+                    <span style={{ fontSize: 10.5, color: C.textMuted, textAlign: "center" }}>{d.sub}</span>
+                  </button>
+                ))}
               </div>
-            )}
-
-            {/* CTA */}
-            <button type="submit" disabled={loading} style={{
-              width: "100%", padding: "12px 14px",
-              background: loading
-                ? C.surfaceHigh
-                : `linear-gradient(135deg, ${C.accentBright} 0%, ${C.accent} 60%, #3da572 100%)`,
-              color: loading ? C.textMuted : "#040d06",
-              border: "none", borderRadius: 10,
-              fontSize: 14, fontWeight: 800,
-              cursor: loading ? "not-allowed" : "pointer",
-              display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
-              letterSpacing: "-0.01em",
-              transition: "opacity 0.15s, transform 0.1s",
-              boxShadow: loading ? "none" : `0 4px 20px rgba(82,183,136,0.28), 0 1px 4px rgba(0,0,0,0.4)`,
-            }}
-              onMouseDown={e => { if (!loading) e.currentTarget.style.transform = "scale(0.98)"; }}
-              onMouseUp={e => { e.currentTarget.style.transform = "scale(1)"; }}
-              onMouseLeave={e => { e.currentTarget.style.transform = "scale(1)"; }}
-            >
-              {loading
-                ? <>{Ico.spin} Initializing 2FA gateway…</>
-                : <>{mode === "signin" ? "Proceed to 2FA verification" : "Verify & register officer"} {Ico.arr}</>}
-            </button>
-          </form>
-
-          {/* ── quick demo access ── */}
-          <div style={{ display: "flex", alignItems: "center", gap: 10, margin: "16px 0 10px" }}>
-            <div style={{ flex: 1, height: 1, background: C.border }} />
-            <span style={{ color: C.textDim, fontSize: 10, fontWeight: 700, letterSpacing: "0.05em" }}>
-              QUICK DEMO ACCESS
-            </span>
-            <div style={{ flex: 1, height: 1, background: C.border }} />
-          </div>
-
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 9 }}>
-            {[
-              { href: "/corporate-admin", iconImg: "/icons/corporate.webp", label: "Corporate HQ", sub: "All mines", role: "corporate" as const, mine: "All CIL Subsidiaries (National Scope)" },
-              { href: "/mine-manager", iconImg: "/icons/manager.webp", label: "Mine manager", sub: "Gevra OCP", role: "manager" as const, mine: "SECL Gevra Mega Opencast" },
-              { href: "/inspector", iconImg: "/icons/inspector.webp", label: "Safety beat", sub: "Inspector view", role: "inspector" as const, mine: "SECL Gevra Mega Opencast" },
-            ].map(d => (
-              <button
-                key={d.href}
-                type="button"
-                onClick={() => handleDemoClick(d.role, d.mine, d.href)}
-                style={{
-                  padding: "12px 8px 11px",
-                  background: C.surfaceUp,
-                  border: `1px solid ${C.border}`,
-                  borderRadius: 10,
-                  cursor: "pointer",
-                  display: "flex", flexDirection: "column", alignItems: "center", gap: 7,
-                  transition: "border-color 0.12s, background 0.12s, transform 0.1s",
-                  fontFamily: "inherit",
-                }}
-                onMouseEnter={e => {
-                  e.currentTarget.style.borderColor = C.accent;
-                  e.currentTarget.style.background = C.surfaceHigh;
-                  e.currentTarget.style.transform = "translateY(-1px)";
-                }}
-                onMouseLeave={e => {
-                  e.currentTarget.style.borderColor = C.border;
-                  e.currentTarget.style.background = C.surfaceUp;
-                  e.currentTarget.style.transform = "translateY(0)";
-                }}
-              >
-                <div style={{
-                  width: 44, height: 44, borderRadius: 10,
-                  background: "rgba(82,183,136,0.12)",
-                  border: `1px solid rgba(82,183,136,0.30)`,
-                  display: "flex", alignItems: "center", justifyContent: "center",
-                  boxShadow: "0 2px 8px rgba(0,0,0,0.25)"
-                }}>
-                  <img src={d.iconImg} alt={d.label} style={{ width: 32, height: 32, objectFit: "contain" }} />
-                </div>
-                <span style={{ fontSize: 12.5, fontWeight: 800, color: C.text, textAlign: "center", lineHeight: 1.2 }}>{d.label}</span>
-                <span style={{ fontSize: 10.5, color: C.textMuted, textAlign: "center" }}>{d.sub}</span>
-              </button>
-            ))}
-          </div>
             </>
           )}
 
