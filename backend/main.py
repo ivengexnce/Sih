@@ -271,7 +271,7 @@ def api_deep_risk_analysis(payload: dict = Body(...)):
 @app.post("/api/ai/ocr-scan")
 def api_ocr_scan(req: OCRScanRequest):
     try:
-        return scan_document_text(raw_text=req.raw_text, doc_id=req.doc_id)
+        return scan_document_text(raw_text=req.raw_text or "", doc_id=req.doc_id or "")
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 

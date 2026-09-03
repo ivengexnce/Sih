@@ -14,7 +14,9 @@ def load_circulars():
             return []
     return []
 
-def scan_document_text(raw_text: str = None, doc_id: str = None):
+from typing import Optional
+
+def scan_document_text(raw_text: Optional[str] = None, doc_id: Optional[str] = None):
     circulars = load_circulars()
 
     if doc_id:
