@@ -438,7 +438,7 @@ export function InspectionProvider({ children }: { children: React.ReactNode }) 
 
     // Only attempt online Cloud Firestore sync if internet connectivity is active
     NetInfo.fetch().then((netState) => {
-      const isOnline = Boolean(netState.isConnected && netState.isInternetReachable !== false);
+      const isOnline = netState.isConnected ?? true;
 
       if (isOnline) {
         saveInspectionToFirestore(completed)
@@ -453,6 +453,7 @@ export function InspectionProvider({ children }: { children: React.ReactNode }) 
                 saveCompletedInspectionsLocally(updated);
                 return updated;
               });
+              console.log('[Online Sync] Inspection synced to Firebase:', completed.inspectionId);
             }
           })
           .catch((err) => {

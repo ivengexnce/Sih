@@ -14,10 +14,9 @@ export default function InspectionSubmittedScreen() {
   const colorScheme = useColorScheme() ?? 'light';
   const isDark = colorScheme === 'dark';
   const { completedInspections } = useInspection();
-  // completedInspections[0] is the record that was just submitted
-  // (submitDraft() prepends newest first, then resets the draft)
-  const submittedId = completedInspections[0]?.inspectionId ?? '—';
-
+  const lastSubmitted = completedInspections[0];
+  const submittedId = lastSubmitted?.inspectionId ?? '—';
+  const isSynced = lastSubmitted?.status === 'Synced';
 
   const cardBg = isDark ? '#1E2328' : '#F8FAFC';
   const cardBorder = isDark ? '#2D3748' : '#E2E8F0';
@@ -58,14 +57,33 @@ export default function InspectionSubmittedScreen() {
             {/* Divider */}
             <View style={styles.divider} />
 
-            {/* Sync Status Section */}
-            <View style={styles.syncBox}>
+            {/* Dynamic Sync Status Section */}
+            <View
+              style={[
+                styles.syncBox,
+                {
+                  backgroundColor: isSynced ? 'rgba(22, 163, 74, 0.08)' : 'rgba(217, 119, 6, 0.08)',
+                  borderColor: isSynced ? 'rgba(22, 163, 74, 0.25)' : 'rgba(217, 119, 6, 0.25)',
+                },
+              ]}>
               <View style={styles.syncStatusRow}>
-                <Ionicons name="time-outline" size={18} color="#D97706" />
-                <ThemedText style={styles.syncStatusText}>Pending Sync</ThemedText>
+                <Ionicons
+                  name={isSynced ? 'cloud-done' : 'time-outline'}
+                  size={18}
+                  color={isSynced ? '#16A34A' : '#D97706'}
+                />
+                <ThemedText
+                  style={[
+                    styles.syncStatusText,
+                    { color: isSynced ? '#16A34A' : '#D97706' },
+                  ]}>
+                  {isSynced ? 'Synced to Cloud' : 'Pending Sync'}
+                </ThemedText>
               </View>
               <ThemedText style={styles.syncDescription}>
-                The inspection will be synchronized when connectivity is available.
+                {isSynced
+                  ? 'Your inspection report has been uploaded and synchronized with Cloud Firestore.'
+                  : 'The inspection is saved locally and will be synchronized when connectivity is available.'}
               </ThemedText>
             </View>
           </View>

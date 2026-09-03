@@ -341,8 +341,8 @@ export default function InspectionsPage() {
       <div style={{ display: "grid", gridTemplateColumns: "1.7fr 1fr", gap: 14 }}>
 
         {/* Inspections Table */}
-        <div style={{ background: "white", border: "1px solid #e5e7eb", borderRadius: 12, overflow: "hidden", boxShadow: "0 1px 3px rgba(0,0,0,0.03)" }}>
-          <div style={{ padding: "16px 20px", borderBottom: "1px solid #f3f4f6", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+        <div style={{ background: "white", border: "1px solid #e5e7eb", borderRadius: 12, overflow: "hidden", boxShadow: "0 1px 3px rgba(0,0,0,0.03)", minWidth: 0 }}>
+          <div style={{ padding: "16px 20px", borderBottom: "1px solid #f3f4f6", display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 10 }}>
             <div>
               <h3 style={{ fontSize: 14, fontWeight: 600, color: "#111827" }}>Recent Statutory Inspections</h3>
               <p style={{ fontSize: 11.5, color: "#6b7280", margin: "2px 0 0 0" }}>Click on any record to view audit details & compliance report</p>
@@ -359,56 +359,60 @@ export default function InspectionsPage() {
               </div>
             </div>
           </div>
-          <table style={{ width: "100%", borderCollapse: "collapse" }}>
-            <thead>
-              <tr style={{ background: "#f9fafb" }}>
-                {["ID", "Area / Section", "Inspector", "Date & Time", "Severity", "Findings", "Status"].map(h => (
-                  <th key={h} style={{ padding: "11px 16px", fontSize: 11, fontWeight: 600, color: "#6b7280", textAlign: "left", letterSpacing: "0.03em", textTransform: "uppercase" }}>{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {filtered.map((ins) => {
-                const ss = statusStyle(ins.status);
-                const sv = severityStyle(ins.severity);
-                return (
-                  <tr
-                    key={ins.id}
-                    onClick={() => setSelectedItem({ type: "inspection", data: ins })}
-                    style={{ borderTop: "1px solid #f3f4f6", cursor: "pointer", transition: "background 0.1s ease" }}
-                    onMouseOver={e => (e.currentTarget.style.background = "#f9fafb")}
-                    onMouseOut={e => (e.currentTarget.style.background = "white")}
-                  >
-                    <td style={{ padding: "12px 16px", fontSize: 12.5, fontWeight: 700, color: "#2d6a4f" }}>{ins.id}</td>
-                    <td style={{ padding: "12px 16px", fontSize: 13, fontWeight: 600, color: "#111827" }}>
-                      {ins.area}
-                      {ins.category && <div style={{ fontSize: 11, color: "#9ca3af", fontWeight: 400 }}>{ins.category}</div>}
-                    </td>
-                    <td style={{ padding: "12px 16px" }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                        <div style={{ width: 24, height: 24, borderRadius: "50%", background: "#e8f5ee", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, fontWeight: 700, color: "#2d6a4f" }}>
-                          {ins.inspector.split(" ").map(n => n[0]).join("")}
+
+          {/* Responsive Horizontal Scroll Wrapper */}
+          <div style={{ overflowX: "auto", overflowY: "hidden", width: "100%", WebkitOverflowScrolling: "touch" }}>
+            <table style={{ width: "100%", minWidth: 780, borderCollapse: "collapse" }}>
+              <thead>
+                <tr style={{ background: "#f9fafb" }}>
+                  {["ID", "Area / Section", "Inspector", "Date & Time", "Severity", "Findings", "Status"].map(h => (
+                    <th key={h} style={{ padding: "11px 16px", fontSize: 11, fontWeight: 600, color: "#6b7280", textAlign: "left", letterSpacing: "0.03em", textTransform: "uppercase", whiteSpace: "nowrap" }}>{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {filtered.map((ins) => {
+                  const ss = statusStyle(ins.status);
+                  const sv = severityStyle(ins.severity);
+                  return (
+                    <tr
+                      key={ins.id}
+                      onClick={() => setSelectedItem({ type: "inspection", data: ins })}
+                      style={{ borderTop: "1px solid #f3f4f6", cursor: "pointer", transition: "background 0.1s ease" }}
+                      onMouseOver={e => (e.currentTarget.style.background = "#f9fafb")}
+                      onMouseOut={e => (e.currentTarget.style.background = "white")}
+                    >
+                      <td style={{ padding: "12px 16px", fontSize: 12.5, fontWeight: 700, color: "#2d6a4f", whiteSpace: "nowrap" }}>{ins.id}</td>
+                      <td style={{ padding: "12px 16px", fontSize: 13, fontWeight: 600, color: "#111827", minWidth: 160 }}>
+                        {ins.area}
+                        {ins.category && <div style={{ fontSize: 11, color: "#9ca3af", fontWeight: 400 }}>{ins.category}</div>}
+                      </td>
+                      <td style={{ padding: "12px 16px", whiteSpace: "nowrap" }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                          <div style={{ width: 24, height: 24, borderRadius: "50%", background: "#e8f5ee", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, fontWeight: 700, color: "#2d6a4f", flexShrink: 0 }}>
+                            {ins.inspector.split(" ").map(n => n[0]).join("")}
+                          </div>
+                          <span style={{ fontSize: 12.5, color: "#374151", fontWeight: 500 }}>{ins.inspector}</span>
                         </div>
-                        <span style={{ fontSize: 12.5, color: "#374151", fontWeight: 500 }}>{ins.inspector}</span>
-                      </div>
-                    </td>
-                    <td style={{ padding: "12px 16px", fontSize: 12, color: "#6b7280" }}>{ins.date}<br /><span style={{ fontSize: 11, color: "#9ca3af" }}>{ins.time}</span></td>
-                    <td style={{ padding: "12px 16px" }}>
-                      <span style={{ padding: "3px 9px", borderRadius: 20, fontSize: 11, fontWeight: 700, background: sv.bg, color: sv.color }}>{ins.severity}</span>
-                    </td>
-                    <td style={{ padding: "12px 16px", fontSize: 13, fontWeight: 700, color: ins.findings > 4 ? "#dc2626" : ins.findings > 0 ? "#ea580c" : "#16a34a" }}>
-                      {ins.findings}
-                    </td>
-                    <td style={{ padding: "12px 16px" }}>
-                      <span style={{ display: "inline-flex", alignItems: "center", gap: 5, padding: "4px 10px", borderRadius: 20, fontSize: 12, fontWeight: 600, background: ss.bg, color: ss.color, border: ss.border as any }}>
-                        <StatusIcon status={ins.status} /> {ins.status}
-                      </span>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+                      </td>
+                      <td style={{ padding: "12px 16px", fontSize: 12, color: "#6b7280", whiteSpace: "nowrap" }}>{ins.date}<br /><span style={{ fontSize: 11, color: "#9ca3af" }}>{ins.time}</span></td>
+                      <td style={{ padding: "12px 16px", whiteSpace: "nowrap" }}>
+                        <span style={{ padding: "3px 9px", borderRadius: 20, fontSize: 11, fontWeight: 700, background: sv.bg, color: sv.color }}>{ins.severity}</span>
+                      </td>
+                      <td style={{ padding: "12px 16px", fontSize: 13, fontWeight: 700, color: ins.findings > 4 ? "#dc2626" : ins.findings > 0 ? "#ea580c" : "#16a34a", whiteSpace: "nowrap" }}>
+                        {ins.findings}
+                      </td>
+                      <td style={{ padding: "12px 16px", whiteSpace: "nowrap" }}>
+                        <span style={{ display: "inline-flex", alignItems: "center", gap: 5, padding: "4px 10px", borderRadius: 20, fontSize: 12, fontWeight: 600, background: ss.bg, color: ss.color, border: ss.border as any }}>
+                          <StatusIcon status={ins.status} /> {ins.status}
+                        </span>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
         </div>
 
         {/* Right Sidebar: Upcoming & Compliance Rate */}
