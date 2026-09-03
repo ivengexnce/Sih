@@ -287,6 +287,38 @@ def api_model_metrics():
         "statutory_standards": "DGMS Coal Mines Regulations 2017"
     }
 
+@app.post("/api/translate")
+@app.get("/api/translate")
+def api_translate(payload: dict = Body(default={})):
+    import urllib.request
+    import urllib.parse
+    texts = payload.get("texts", [])
+    text = payload.get("text", "")
+    target_lang = payload.get("targetLang", "hi")
+
+    if text and not texts:
+        texts = [text]
+
+    results = []
+    for t in texts:
+        if not t:
+            results.append("")
+            continue
+        try:
+            url = f"https://translate.googleapis.com/translate_a/single?client=gtx&sl=en&tl={target_lang}&dt=t&q={urllib.parse.quote(str(t))}"
+            req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
+            with urllib.request.urlopen(req, timeout=5) as response:
+                data = json.loads(response.read().decode("utf-8"))
+                if data and len(data) > 0 and data[0]:
+                    translated = "".join(seg[0] for seg in data[0] if seg and seg[0])
+                    results.append(translated)
+                else:
+                    results.append(t)
+        except Exception:
+            results.append(t)
+
+    return {"translated": results, "targetLang": target_lang}
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="127.0.0.1", port=8000)
