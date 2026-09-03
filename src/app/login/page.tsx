@@ -1199,12 +1199,17 @@ export default function Login() {
           registeredAt: pendingSession.officerSession.registeredAt,
         });
 
-        if (!syncRes.success) {
-          console.warn("[Registration notice]:", syncRes.error);
+        if (!syncRes.success && syncRes.error) {
+          setErrorMsg(`Firebase registration notice: ${syncRes.error}`);
+          setLoading(false);
+          return;
         }
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error("Storage error:", err);
+      setErrorMsg(`Registration error: ${err?.message || "Failed to save account."}`);
+      setLoading(false);
+      return;
     }
 
     setLoading(false);

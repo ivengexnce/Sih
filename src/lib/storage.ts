@@ -454,7 +454,13 @@ class StorageService {
               console.log("[Firebase Auth] Account exists, continuing to write Firestore profile.");
             }
           } else {
-            console.warn("[Firebase Auth] Provisioning notice:", authErr?.message || authErr);
+            console.warn("[Firebase Auth] Provisioning error:", authErr?.message || authErr);
+            return {
+              success: false,
+              error: authErr?.code === "auth/operation-not-allowed"
+                ? "Email/Password sign-in is not enabled in your Firebase Console. Please go to Firebase Console -> Authentication -> Sign-in method and enable 'Email/Password'."
+                : (authErr?.message || "Failed to create Firebase Auth user.")
+            };
           }
         }
       }

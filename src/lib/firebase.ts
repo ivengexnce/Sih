@@ -27,19 +27,11 @@ export const firebaseConfig: FirebaseConfig = {
 };
 
 export const isFirebaseConfigured = (): boolean => {
-  return Boolean(
-    process.env.NEXT_PUBLIC_FIREBASE_API_KEY &&
-    process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID &&
-    process.env.NEXT_PUBLIC_FIREBASE_API_KEY !== ""
-  );
+  return true;
 };
 
 export const getStorageEngineMode = (): "firebase" | "local_storage_demo" => {
-  if (typeof window !== "undefined") {
-    const forcedLocal = localStorage.getItem("mineguard_force_local");
-    if (forcedLocal === "true") return "local_storage_demo";
-  }
-  return isFirebaseConfigured() ? "firebase" : "local_storage_demo";
+  return "firebase";
 };
 
 // Initialize Firebase App singleton
