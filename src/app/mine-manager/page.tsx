@@ -161,13 +161,56 @@ export default function Dashboard() {
   const [allocatedMine, setAllocatedMine] = useState("Rajpura Coal Mine (SECL)");
   const [colliery, setColliery] = useState<CollieryProfile>(getCollieryProfile("rajpura"));
   const [selectedAiTarget, setSelectedAiTarget] = useState<AiRiskTarget | null>(null);
+  const [liveInspections, setLiveInspections] = useState<any[]>([]);
 
   useEffect(() => {
+    let unsubscribe = () => {};
     try {
       const mine = storageService.getActiveAllocatedMine();
       setAllocatedMine(mine);
       setColliery(getCollieryProfile(mine));
+
+      unsubscribe = storageService.subscribeToInspections((docs) => {
+        if (docs && docs.length > 0) {
+          const mapped = docs.map((d) => {
+            const dateStr = d.createdAt || d.timestamp || d.submittedAt;
+            let formattedDate = "Today";
+            let formattedTime = "10:00 AM";
+            if (dateStr) {
+              try {
+                const dt = new Date(dateStr);
+                if (!isNaN(dt.getTime())) {
+                  formattedDate = dt.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+                  formattedTime = dt.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" });
+                }
+              } catch {}
+            }
+            const rawStatus = (d.status || d.escalationStatus || "").toUpperCase();
+            let status: "Compliant" | "Non-Compliant" | "Partial" = "Compliant";
+            if (rawStatus.includes("NON") || rawStatus.includes("REJECT") || (d.severity && d.severity.toUpperCase() === "HIGH")) {
+              status = "Non-Compliant";
+            } else if (rawStatus.includes("PARTIAL") || rawStatus.includes("REVIEW") || rawStatus.includes("PENDING")) {
+              status = "Partial";
+            }
+
+            return {
+              id: d.inspectionId || d.id,
+              area: d.area || d.setup?.area || d.section || "Pit Section",
+              date: formattedDate,
+              time: formattedTime,
+              status,
+              inspector: d.inspectorName || d.inspectorEmail || d.inspector || "Statutory Inspector",
+              score: status === "Compliant" ? 96 : status === "Partial" ? 82 : 68,
+            };
+          });
+          setLiveInspections(mapped);
+        }
+      }, mine);
     } catch (e) {}
+
+    return () => {
+      unsubscribe();
+    };
   }, []);
 
   const highestRiskSection = colliery.sections.find(s => s.risk === "High") || colliery.sections[0];
@@ -358,11 +401,11 @@ export default function Dashboard() {
             <p style={{ fontSize: 14, fontWeight: 700, margin: 0 }}>Recent Inspections</p>
             <Link href="/mine-manager/inspections" style={{ fontSize: 11.5, color: "#2d6a4f", fontWeight: 700, textDecoration: "none", display: "flex", alignItems: "center", gap: 3 }}>All <ArrowRight size={11} /></Link>
           </div>
-          {colliery.inspections.map((insp, i) => (
+          {(liveInspections.length > 0 ? liveInspections.slice(0, 4) : colliery.inspections).map((insp, i, arr) => (
             <div key={insp.id || i} style={{
               display: "flex", alignItems: "center", justifyContent: "space-between",
               padding: "10px 0",
-              borderBottom: i < colliery.inspections.length - 1 ? "1px solid var(--surface-2)" : "none",
+              borderBottom: i < arr.length - 1 ? "1px solid var(--surface-2)" : "none",
               transition: "background 0.12s",
             }}>
               <div>
@@ -375,7 +418,7 @@ export default function Dashboard() {
                 background: insp.status === "Compliant" ? "#dcfce7" : insp.status === "Non-Compliant" ? "#fee2e2" : "#fff7ed",
                 color: insp.status === "Compliant" ? "#16a34a" : insp.status === "Non-Compliant" ? "#dc2626" : "#ea580c",
               }}>
-                {insp.status} ({insp.score}%)
+                {insp.status} ({insp.score || 90}%)
               </span>
             </div>
           ))}

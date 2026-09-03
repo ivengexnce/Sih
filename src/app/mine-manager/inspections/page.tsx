@@ -112,10 +112,62 @@ export default function InspectionsPage() {
   const [formNotes, setFormNotes] = useState("");
 
   useEffect(() => {
+    let unsubscribe = () => {};
     try {
       const mine = storageService.getActiveAllocatedMine();
       const profile = getCollieryProfile(mine);
       setColliery(profile);
+
+      // Subscribe to real-time live inspections from Cloud Firestore
+      unsubscribe = storageService.subscribeToInspections((liveDocs) => {
+        if (liveDocs && liveDocs.length > 0) {
+          const mapped = liveDocs.map((d) => {
+            const dateStr = d.createdAt || d.timestamp || d.submittedAt;
+            let formattedDate = "Today";
+            let formattedTime = "10:00 AM";
+            if (dateStr) {
+              try {
+                const dt = new Date(dateStr);
+                if (!isNaN(dt.getTime())) {
+                  formattedDate = dt.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+                  formattedTime = dt.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" });
+                }
+              } catch {}
+            }
+
+            const rawStatus = (d.status || d.escalationStatus || "").toUpperCase();
+            let status: "Compliant" | "Non-Compliant" | "Partial" = "Compliant";
+            if (rawStatus.includes("NON") || rawStatus.includes("REJECT") || (d.severity && d.severity.toUpperCase() === "HIGH")) {
+              status = "Non-Compliant";
+            } else if (rawStatus.includes("PARTIAL") || rawStatus.includes("REVIEW") || rawStatus.includes("PENDING")) {
+              status = "Partial";
+            }
+
+            const sevRaw = (d.severity || d.observation?.severity || "Low").toUpperCase();
+            let severity: "High" | "Medium" | "Low" = "Low";
+            if (sevRaw === "HIGH" || sevRaw === "CRITICAL") severity = "High";
+            else if (sevRaw === "MEDIUM") severity = "Medium";
+
+            return {
+              id: d.inspectionId || d.id || `INS-${Math.floor(100 + Math.random() * 900)}`,
+              area: d.area || d.setup?.area || d.section || "Pit Area",
+              inspector: d.inspectorName || d.inspectorEmail || d.inspector || "Statutory Inspector",
+              date: d.date || formattedDate,
+              time: d.time || formattedTime,
+              status,
+              severity,
+              findings: d.findings !== undefined ? d.findings : (d.evidence?.length || (status === "Compliant" ? 0 : 1)),
+              category: d.category || d.observation?.category || d.setup?.inspectionType || "Safety Compliance",
+              notes: d.description || d.observation?.description || d.notes || "Inspection uploaded from MineGuard App.",
+            };
+          });
+
+          // Merge live mapped records with default records (avoiding duplicates)
+          const liveIds = new Set(mapped.map((m) => m.id));
+          const remainingDefaults = defaultInspections.filter((def) => !liveIds.has(def.id));
+          setInspectionsList([...mapped, ...remainingDefaults]);
+        }
+      }, mine);
 
       // Load custom scheduled inspections
       const stored = localStorage.getItem("mineguard_scheduled_inspections");
@@ -137,7 +189,13 @@ export default function InspectionsPage() {
           setShowScheduleModal(true);
         }
       }
-    } catch (e) {}
+    } catch (e) {
+      console.warn("Error initializing inspections page:", e);
+    }
+
+    return () => {
+      unsubscribe();
+    };
   }, []);
 
   const handleScheduleSubmit = (e: React.FormEvent) => {

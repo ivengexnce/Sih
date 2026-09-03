@@ -4,7 +4,17 @@ import {
   signInWithEmailAndPassword,
   updateProfile
 } from "firebase/auth";
-import { doc, setDoc } from "firebase/firestore";
+import {
+  doc,
+  setDoc,
+  collection,
+  getDocs,
+  onSnapshot,
+  query,
+  orderBy,
+  limit,
+  where
+} from "firebase/firestore";
 
 export interface OfficerProfile {
   id?: string;
@@ -532,6 +542,81 @@ class StorageService {
     } catch (err) {
       console.warn("Bulk sync error:", err);
       return { success: false, syncedCount: 0 };
+    }
+  }
+
+  /**
+   * Fetch all live inspections directly from Cloud Firestore
+   */
+  public async fetchInspectionsFromFirebase(filterMineNameOrId?: string): Promise<any[]> {
+    try {
+      if (!db) return [];
+      const colRef = collection(db, "inspections");
+      const q = query(colRef, orderBy("createdAt", "desc"), limit(60));
+      const snap = await getDocs(q);
+      const items: any[] = [];
+      snap.forEach((docSnap) => {
+        const d = docSnap.data();
+        items.push({ id: docSnap.id, ...d });
+      });
+
+      if (filterMineNameOrId && filterMineNameOrId.trim()) {
+        const cleanQuery = filterMineNameOrId.toLowerCase().replace(/[^a-z0-9]/g, "");
+        return items.filter((item) => {
+          const mName = (item.mineName || item.mine || item.setup?.mine || "").toLowerCase().replace(/[^a-z0-9]/g, "");
+          const mId = (item.mineId || item.setup?.mineId || "").toLowerCase().replace(/[^a-z0-9]/g, "");
+          return !cleanQuery || mName.includes(cleanQuery) || cleanQuery.includes(mName) || mId.includes(cleanQuery) || cleanQuery.includes(mId);
+        });
+      }
+      return items;
+    } catch (e) {
+      console.warn("[Firebase] Error fetching inspections:", e);
+      return [];
+    }
+  }
+
+  /**
+   * Subscribe to real-time live inspections from Cloud Firestore
+   */
+  public subscribeToInspections(
+    callback: (inspections: any[]) => void,
+    filterMineNameOrId?: string
+  ): () => void {
+    if (!db) {
+      callback([]);
+      return () => {};
+    }
+    try {
+      const colRef = collection(db, "inspections");
+      const q = query(colRef, orderBy("createdAt", "desc"), limit(60));
+      return onSnapshot(
+        q,
+        (snap) => {
+          const items: any[] = [];
+          snap.forEach((docSnap) => {
+            const d = docSnap.data();
+            items.push({ id: docSnap.id, ...d });
+          });
+
+          if (filterMineNameOrId && filterMineNameOrId.trim()) {
+            const cleanQuery = filterMineNameOrId.toLowerCase().replace(/[^a-z0-9]/g, "");
+            const filtered = items.filter((item) => {
+              const mName = (item.mineName || item.mine || item.setup?.mine || "").toLowerCase().replace(/[^a-z0-9]/g, "");
+              const mId = (item.mineId || item.setup?.mineId || "").toLowerCase().replace(/[^a-z0-9]/g, "");
+              return !cleanQuery || mName.includes(cleanQuery) || cleanQuery.includes(mName) || mId.includes(cleanQuery) || cleanQuery.includes(mId);
+            });
+            callback(filtered);
+          } else {
+            callback(items);
+          }
+        },
+        (err) => {
+          console.warn("[Firebase] Real-time inspections subscription notice:", err);
+        }
+      );
+    } catch (e) {
+      console.warn("[Firebase] Subscription init error:", e);
+      return () => {};
     }
   }
 }

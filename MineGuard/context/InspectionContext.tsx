@@ -21,6 +21,7 @@ import React, {
 import {
   saveInspectionToFirestore,
   fetchInspectionsFromFirestore,
+  subscribeToFirestoreInspections,
 } from '@/services/inspectionService';
 import { DEFAULT_MINE, MineInfo } from '@/constants/mines';
 import { getActiveMineLocally, saveActiveMineLocally } from '@/services/authService';
@@ -394,18 +395,26 @@ export function InspectionProvider({ children }: { children: React.ReactNode }) 
     }));
   }, []);
 
-  // Load existing inspections from Firestore on initial mount if available
+  // Live real-time sync with Cloud Firestore for current mine
   useEffect(() => {
-    fetchInspectionsFromFirestore(10).then((res) => {
-      if (res.success && res.data.length > 0) {
-        setCompletedInspections((prev) => {
-          const existingIds = new Set(prev.map((i) => i.inspectionId));
-          const newItems = res.data.filter((i) => !existingIds.has(i.inspectionId));
-          return [...newItems, ...prev];
-        });
-      }
-    });
-  }, []);
+    const unsubscribe = subscribeToFirestoreInspections(
+      (liveInspections) => {
+        if (liveInspections && liveInspections.length > 0) {
+          setCompletedInspections((prev) => {
+            const pendingLocal = prev.filter((i) => i.status === 'Pending Sync');
+            const liveIds = new Set(liveInspections.map((i) => i.inspectionId));
+            const remainingPending = pendingLocal.filter((i) => !liveIds.has(i.inspectionId));
+            return [...remainingPending, ...liveInspections];
+          });
+        }
+      },
+      currentMine.id || currentMine.name
+    );
+
+    return () => {
+      unsubscribe();
+    };
+  }, [currentMine.id, currentMine.name]);
 
   const resetDraft = useCallback(() => {
     setDraft(makeDefaultDraft(currentMine));
