@@ -18,6 +18,9 @@ import React, {
   useState,
 } from 'react';
 
+import NetInfo from '@react-native-community/netinfo';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
 import {
   saveInspectionToFirestore,
   fetchInspectionsFromFirestore,
@@ -25,6 +28,28 @@ import {
 } from '@/services/inspectionService';
 import { DEFAULT_MINE, MineInfo } from '@/constants/mines';
 import { getActiveMineLocally, saveActiveMineLocally } from '@/services/authService';
+
+const COMPLETED_INSPECTIONS_STORAGE_KEY = '@mineguard_completed_inspections';
+
+async function saveCompletedInspectionsLocally(inspections: CompletedInspection[]): Promise<void> {
+  try {
+    await AsyncStorage.setItem(COMPLETED_INSPECTIONS_STORAGE_KEY, JSON.stringify(inspections));
+  } catch (e) {
+    console.warn('Failed to save completed inspections locally:', e);
+  }
+}
+
+async function getCompletedInspectionsLocally(): Promise<CompletedInspection[]> {
+  try {
+    const data = await AsyncStorage.getItem(COMPLETED_INSPECTIONS_STORAGE_KEY);
+    if (data) {
+      return JSON.parse(data) as CompletedInspection[];
+    }
+  } catch (e) {
+    console.warn('Failed to load completed inspections locally:', e);
+  }
+  return [];
+}
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -95,6 +120,9 @@ export interface InspectionDraft {
  */
 export interface CompletedInspection extends InspectionDraft {
   status: 'Pending Sync' | 'Synced';
+  submittedAt?: string;
+  inspectorEmail?: string;
+  inspectorName?: string;
 }
 
 // ─── Validation Helpers ───────────────────────────────────────────────────────
@@ -264,7 +292,7 @@ interface InspectionContextValue {
   /**
    * Sync all pending inspections to Cloud Firestore.
    */
-  syncAllWithFirebase: () => Promise<{ success: boolean; syncedCount: number }>;
+  syncAllWithFirebase: () => Promise<{ success: boolean; syncedCount: number; message?: string }>;
 }
 
 const InspectionContext = createContext<InspectionContextValue | null>(null);
@@ -276,7 +304,7 @@ export function InspectionProvider({ children }: { children: React.ReactNode }) 
   const [draft, setDraft] = useState<InspectionDraft>(() => makeDefaultDraft(DEFAULT_MINE));
   const [completedInspections, setCompletedInspections] = useState<CompletedInspection[]>([]);
 
-  // Load active mine from AsyncStorage on mount
+  // Load active mine and stored completed inspections from AsyncStorage on mount
   useEffect(() => {
     getActiveMineLocally().then((mine) => {
       if (mine) {
@@ -292,6 +320,12 @@ export function InspectionProvider({ children }: { children: React.ReactNode }) 
             panel: mine.defaultPanel,
           },
         }));
+      }
+    });
+
+    getCompletedInspectionsLocally().then((stored) => {
+      if (stored && stored.length > 0) {
+        setCompletedInspections(stored);
       }
     });
   }, []);
@@ -316,12 +350,23 @@ export function InspectionProvider({ children }: { children: React.ReactNode }) 
   useEffect(() => {
     const unsubscribe = subscribeToFirestoreInspections(
       (liveInspections) => {
-        if (liveInspections && liveInspections.length > 0) {
+        if (liveInspections) {
           setCompletedInspections((prev) => {
             const pendingLocal = prev.filter((i) => i.status === 'Pending Sync');
             const liveIds = new Set(liveInspections.map((i) => i.inspectionId));
             const remainingPending = pendingLocal.filter((i) => !liveIds.has(i.inspectionId));
-            return [...remainingPending, ...liveInspections];
+
+            const mergedMap = new Map<string, CompletedInspection>();
+            liveInspections.forEach((item) => {
+              mergedMap.set(item.inspectionId, item);
+            });
+            remainingPending.forEach((item) => {
+              mergedMap.set(item.inspectionId, item);
+            });
+
+            const mergedList = Array.from(mergedMap.values());
+            saveCompletedInspectionsLocally(mergedList);
+            return mergedList;
           });
         }
       },
@@ -383,47 +428,83 @@ export function InspectionProvider({ children }: { children: React.ReactNode }) 
       status: 'Pending Sync',
     };
 
-    // Update in-memory state immediately for responsive UI
-    setCompletedInspections((prev) => [completed, ...prev]);
+    // Update in-memory state & AsyncStorage immediately
+    setCompletedInspections((prev) => {
+      const updated = [completed, ...prev.filter((i) => i.inspectionId !== completed.inspectionId)];
+      saveCompletedInspectionsLocally(updated);
+      return updated;
+    });
     setDraft(makeDefaultDraft(currentMine));
 
-    // Attempt background Firestore sync
-    saveInspectionToFirestore(completed)
-      .then((res) => {
-        if (res.success) {
-          setCompletedInspections((prev) =>
-            prev.map((item) =>
-              item.inspectionId === completed.inspectionId
-                ? { ...item, status: 'Synced' }
-                : item
-            )
-          );
-        }
-      })
-      .catch((err) => {
-        console.warn('Background sync warning:', err);
-      });
+    // Only attempt online Cloud Firestore sync if internet connectivity is active
+    NetInfo.fetch().then((netState) => {
+      const isOnline = Boolean(netState.isConnected && netState.isInternetReachable !== false);
+
+      if (isOnline) {
+        saveInspectionToFirestore(completed)
+          .then((res) => {
+            if (res.success) {
+              setCompletedInspections((prev) => {
+                const updated = prev.map((item) =>
+                  item.inspectionId === completed.inspectionId
+                    ? { ...item, status: 'Synced' as const }
+                    : item
+                );
+                saveCompletedInspectionsLocally(updated);
+                return updated;
+              });
+            }
+          })
+          .catch((err) => {
+            console.warn('Background sync warning:', err);
+          });
+      } else {
+        console.log('[Offline Mode] Inspection saved locally as Pending Sync:', completed.inspectionId);
+      }
+    });
 
     return true;
   }, [draft, currentMine]);
 
   const syncAllWithFirebase = useCallback(async () => {
+    const netState = await NetInfo.fetch();
+    const isOnline = Boolean(netState.isConnected && netState.isInternetReachable !== false);
+
+    if (!isOnline) {
+      return {
+        success: false,
+        syncedCount: 0,
+        message: 'Device is offline. Please connect to the internet to sync pending records.',
+      };
+    }
+
     let syncedCount = 0;
-    for (const item of completedInspections) {
-      if (item.status === 'Pending Sync') {
-        const res = await saveInspectionToFirestore(item);
-        if (res.success) {
-          syncedCount++;
-          setCompletedInspections((prev) =>
-            prev.map((rec) =>
-              rec.inspectionId === item.inspectionId
-                ? { ...rec, status: 'Synced' }
-                : rec
-            )
-          );
+    const currentPending = completedInspections.filter((i) => i.status === 'Pending Sync');
+
+    if (currentPending.length === 0) {
+      return {
+        success: true,
+        syncedCount: 0,
+        message: 'All inspection records are already up to date with Firebase.',
+      };
+    }
+
+    const updatedList = [...completedInspections];
+
+    for (const item of currentPending) {
+      const res = await saveInspectionToFirestore(item);
+      if (res.success) {
+        syncedCount++;
+        const idx = updatedList.findIndex((rec) => rec.inspectionId === item.inspectionId);
+        if (idx !== -1) {
+          updatedList[idx] = { ...updatedList[idx], status: 'Synced' };
         }
       }
     }
+
+    setCompletedInspections(updatedList);
+    await saveCompletedInspectionsLocally(updatedList);
+
     return { success: true, syncedCount };
   }, [completedInspections]);
 

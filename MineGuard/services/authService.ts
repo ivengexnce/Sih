@@ -92,6 +92,9 @@ export function resolveMineInfo(allocatedMineName?: string): MineInfo {
     state: 'Chhattisgarh',
     type: 'Opencast',
     code: `MINE-${code}`,
+    defaultArea: 'General Pit Area',
+    defaultLevel: '+140m RL',
+    defaultPanel: 'Panel 01',
   };
 }
 

@@ -32,8 +32,11 @@ export function normalizeFirestoreInspection(d: any): CompletedInspection {
   else if (rawSev === 'LOW') sev = 'Low';
   else sev = 'Medium';
 
+  const timeString = d.timestamp || d.createdAt || d.submittedAt || new Date().toISOString();
+
   return {
     inspectionId,
+    timestamp: timeString,
     setup: d.setup || {
       mine: d.mineName || d.mine || 'Active Colliery Project',
       mineId: d.mineId || 'BCCL-JHR-01',
@@ -55,7 +58,7 @@ export function normalizeFirestoreInspection(d: any): CompletedInspection {
       gpsAccuracy: d.gpsAccuracy || 'High (GPS Locked)',
     },
     evidence: Array.isArray(d.evidence) ? d.evidence : [],
-    submittedAt: d.createdAt || d.submittedAt || d.timestamp || new Date().toISOString(),
+    submittedAt: timeString,
     status: d.status === 'Pending Sync' ? 'Pending Sync' : 'Synced',
     inspectorEmail: d.inspectorEmail || d.inspector || '',
     inspectorName: d.inspectorName || d.inspector || '',

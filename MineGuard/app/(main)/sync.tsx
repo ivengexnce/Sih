@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Ionicons from '@expo/vector-icons/Ionicons';
+import NetInfo from '@react-native-community/netinfo';
 
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
@@ -16,6 +17,15 @@ export default function SyncScreen() {
   const { completedInspections, syncAllWithFirebase } = useInspection();
   const [isSyncing, setIsSyncing] = useState(false);
   const [syncMessage, setSyncMessage] = useState<string | null>(null);
+  const [isConnected, setIsConnected] = useState<boolean>(true);
+
+  useEffect(() => {
+    const unsubscribe = NetInfo.addEventListener((state) => {
+      const online = Boolean(state.isConnected && state.isInternetReachable !== false);
+      setIsConnected(online);
+    });
+    return () => unsubscribe();
+  }, []);
 
   const pendingCount = completedInspections.filter((i) => i.status === 'Pending Sync').length;
   const syncedCount = completedInspections.filter((i) => i.status === 'Synced').length;
@@ -28,8 +38,10 @@ export default function SyncScreen() {
     setSyncMessage(null);
     try {
       const result = await syncAllWithFirebase();
-      if (result.syncedCount > 0) {
-        setSyncMessage(`Successfully dispatched ${result.syncedCount} inspection${result.syncedCount > 1 ? 's' : ''} to Firestore.`);
+      if (!result.success) {
+        setSyncMessage(result.message || 'Device is offline. Internet connection required to sync.');
+      } else if (result.syncedCount > 0) {
+        setSyncMessage(`Successfully dispatched ${result.syncedCount} inspection${result.syncedCount > 1 ? 's' : ''} to Cloud Firestore.`);
       } else {
         setSyncMessage('All inspection records are already up to date with Firebase.');
       }
@@ -57,11 +69,20 @@ export default function SyncScreen() {
           {/* Connection Status Card */}
           <View style={[styles.card, { backgroundColor: cardBg, borderColor: cardBorder }]}>
             <View style={styles.cardHeader}>
-              <View style={styles.onlineIndicator} />
-              <ThemedText style={styles.cardTitle}>Database: Connected (Firebase Firestore)</ThemedText>
+              <View
+                style={[
+                  styles.onlineIndicator,
+                  { backgroundColor: isConnected ? '#16A34A' : '#D97706' },
+                ]}
+              />
+              <ThemedText style={styles.cardTitle}>
+                {isConnected ? 'Database: Connected (Firebase Firestore)' : 'Database: Offline (Local Queue)'}
+              </ThemedText>
             </View>
             <ThemedText style={styles.cardDetail}>
-              Connected to project {firebaseConfig.projectId}. Cloud synchronization active.
+              {isConnected
+                ? `Connected to project ${firebaseConfig.projectId}. Cloud synchronization active.`
+                : 'Device is offline. Completed inspections are saved locally and queued for manual sync.'}
             </ThemedText>
           </View>
 
