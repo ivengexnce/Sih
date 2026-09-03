@@ -2,6 +2,7 @@
 import { useState, useEffect } from "react";
 import { FileText, Plus, Search, Download, Folder, Calendar, Shield, FileCheck, BookOpen, CheckCircle, UploadCloud, X } from "lucide-react";
 import { storageService } from "@/lib/storage";
+import { useTranslation } from "@/app/components/LanguageContext";
 
 const categories = [
   { label: "Safety Manuals",  icon: <Shield size={20} color="#2d6a4f" />,   count: 14, bg: "#e8f5ee", color: "#2d6a4f" },
@@ -33,6 +34,7 @@ const statusStyle = (s: string) => s === "Current"
   : { bg: "#fff7ed", color: "#ea580c" };
 
 export default function DocumentsPage() {
+  const { t } = useTranslation();
   const [documentsList, setDocumentsList] = useState(documents);
   const [query, setQuery] = useState("");
   const [showModal, setShowModal] = useState(false);
@@ -302,7 +304,7 @@ Regulations 2017. Any modifications must be countersigned by the Manager.
           onClick={() => setShowModal(true)}
           style={{ display: "flex", alignItems: "center", gap: 6, padding: "9px 16px", background: "#2d6a4f", color: "white", border: "none", borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: "pointer", boxShadow: "0 2px 8px rgba(45,106,79,0.25)" }}
         >
-          <Plus size={14} /> Upload Document
+          <Plus size={14} /> {t("btn.upload_document", "Upload Document")}
         </button>
       </div>
 

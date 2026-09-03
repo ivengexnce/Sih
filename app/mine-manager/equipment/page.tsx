@@ -3,6 +3,7 @@ import { useState, useEffect } from "react";
 import { Wrench, Plus, Search, AlertTriangle, CheckCircle, Clock, Gauge, Zap, Truck, Cog } from "lucide-react";
 import { storageService } from "@/lib/storage";
 import { getCollieryProfile, CollieryProfile } from "@/lib/collieryData";
+import { useTranslation } from "@/app/components/LanguageContext";
 
 const equipment = [
   { id: "EQ-001", name: "CAT 789D Haul Truck",         type: "Transport",    location: "Pit Area",         status: "Operational",   uptime: 94, lastService: "May 10, 2025", nextService: "Jun 10, 2025", operator: "Deepak Kumar",  fuel: 82, hours: 12420 },
@@ -32,6 +33,7 @@ const typeIcons: Record<string, React.ReactNode> = {
 };
 
 export default function EquipmentPage() {
+  const { t } = useTranslation();
   const [colliery, setColliery] = useState<CollieryProfile>(getCollieryProfile("rajpura"));
   const [query, setQuery] = useState("");
   const [equipmentList, setEquipmentList] = useState(equipment);
@@ -288,7 +290,7 @@ export default function EquipmentPage() {
           onClick={() => setShowModal(true)}
           style={{ display: "flex", alignItems: "center", gap: 6, padding: "9px 16px", background: "#2d6a4f", color: "white", border: "none", borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: "pointer", boxShadow: "0 2px 8px rgba(45,106,79,0.25)" }}
         >
-          <Plus size={14} /> Add Equipment
+          <Plus size={14} /> {t("btn.add_equipment", "Add Equipment")}
         </button>
       </div>
 

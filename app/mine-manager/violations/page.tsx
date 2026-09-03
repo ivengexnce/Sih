@@ -3,6 +3,7 @@ import { useState, useEffect } from "react";
 import { AlertTriangle, Plus, Search, Filter, Clock, CheckCircle } from "lucide-react";
 import { storageService } from "@/lib/storage";
 import { getCollieryProfile, CollieryProfile } from "@/lib/collieryData";
+import { useTranslation } from "@/app/components/LanguageContext";
 
 const violations = [
   { id: "VIO-128", type: "PPE Non-Compliance",       area: "Pit Area",           reporter: "R. Sharma",  date: "May 19, 2025", severity: "High",   status: "Open",     desc: "3 workers observed without helmets in active blasting zone." },
@@ -33,6 +34,7 @@ const statusStyle = (s: string) => {
 };
 
 export default function ViolationsPage() {
+  const { t } = useTranslation();
   const [colliery, setColliery] = useState<CollieryProfile>(getCollieryProfile("rajpura"));
   const [query, setQuery] = useState("");
   const [violationsList, setViolationsList] = useState(violations);
@@ -263,7 +265,7 @@ export default function ViolationsPage() {
           onClick={() => setShowLogModal(true)}
           style={{ display: "flex", alignItems: "center", gap: 6, padding: "9px 16px", background: "#e63946", color: "white", border: "none", borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: "pointer", boxShadow: "0 2px 8px rgba(230,57,70,0.25)" }}
         >
-          <Plus size={14} /> Log Violation
+          <Plus size={14} /> {t("btn.log_violation", "Log Violation")}
         </button>
       </div>
 

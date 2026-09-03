@@ -3,52 +3,50 @@
 import React, { useState, useEffect, useRef } from "react";
 import {
   Bell, Globe, Check, AlertTriangle, Clock, ShieldAlert,
-  FileText, Wrench, X, CheckCheck, Trash2, ChevronDown, CheckCircle,
-  PlusCircle, Volume2
+  FileText, Wrench, X, CheckCheck, Trash2, ChevronDown, CheckCircle
 } from "lucide-react";
-import { useTranslation, LANGUAGES, LanguageCode } from "./LanguageContext";
 
 export interface NotificationItem {
   id: string;
   title: string;
   desc: string;
   time: string;
-  severity: "critical" | "warning" | "info";
+  severity: "critical" | "warning" | "info" | "maintenance";
   unread: boolean;
-  category: "Ventilation" | "DGMS Compliance" | "Equipment" | "Statutory" | "Audit";
+  category: string;
 }
 
 const INITIAL_NOTIFICATIONS: NotificationItem[] = [
   {
     id: "notif-1",
-    title: "Continuous Methane Spike (1.15% CH₄)",
-    desc: "Underground Seam 3, Face 4 sensor tripped statutory alert. Airflow diverted to auxiliary duct.",
-    time: "4m ago",
+    title: "Critical Methane Spike (1.15% CH₄)",
+    desc: "Section L-3 Heading 4 return airway split exceeded 1.0% threshold. Power interlock trip activated under CMR Reg 153.",
+    time: "4 mins ago",
     severity: "critical",
     unread: true,
-    category: "Ventilation"
+    category: "Telemetry"
   },
   {
     id: "notif-2",
-    title: "DGMS Circular 02/2024 SLA Notice",
-    desc: "Mandatory strata control & SCAMP review due in 48 hours for all Degree-III gassy mines.",
-    time: "28m ago",
+    title: "DGMS Circular 02/2024 Deadline Approaching",
+    desc: "Continuous tele-monitoring compliance report submission required before statutory deadline.",
+    time: "2 hours ago",
     severity: "warning",
     unread: true,
-    category: "DGMS Compliance"
+    category: "Regulatory"
   },
   {
     id: "notif-3",
-    title: "CAT 777D Haul Truck Engine Temp",
-    desc: "Dumper #D-04 telemetry reports transmission fluid heating above 98°C at Ramp 2.",
-    time: "2h ago",
-    severity: "warning",
+    title: "Dumper #CAT-789D Thermal Warning",
+    desc: "Rear differential temperature logged 88°C on Haul Road 2. Dispatched to Workshop Bay 3.",
+    time: "5 hours ago",
+    severity: "maintenance",
     unread: true,
-    category: "Equipment"
+    category: "Fleet"
   },
   {
     id: "notif-4",
-    title: "DGMS Form IV Incident Inquiry",
+    title: "DGMS Form IV Inspection Dispatched",
     desc: "Statutory notice of spontaneous combustion inquiry acknowledged by Regional Inspector Sitarampur.",
     time: "Yesterday",
     severity: "info",
@@ -66,16 +64,31 @@ const INITIAL_NOTIFICATIONS: NotificationItem[] = [
   }
 ];
 
+const LANGUAGES = [
+  { code: "en", label: "English", native: "English", flag: "🇬🇧", desc: "National Statutory Scope" },
+  { code: "hi", label: "Hindi", native: "हिन्दी", flag: "🇮🇳", desc: "Coal Belt (SECL, BCCL, CCL, NCL, WCL)" },
+  { code: "bn", label: "Bengali", native: "বাংলা", flag: "🇮🇳", desc: "Eastern Coalfields (ECL, Raniganj)" },
+  { code: "or", label: "Odia", native: "ଓଡ଼ିଆ", flag: "🇮🇳", desc: "Mahanadi Coalfields (MCL, Talcher)" }
+];
+
 export default function HeaderNavActions() {
-  const { currentLang, setLanguage, t } = useTranslation();
   const [notifications, setNotifications] = useState<NotificationItem[]>(INITIAL_NOTIFICATIONS);
   const [notifOpen, setNotifOpen] = useState(false);
   const [filterUnreadOnly, setFilterUnreadOnly] = useState(false);
+
   const [langOpen, setLangOpen] = useState(false);
-  const [toastMsg, setToastMsg] = useState<string | null>(null);
+  const [currentLang, setCurrentLang] = useState("en");
 
   const notifRef = useRef<HTMLDivElement>(null);
   const langRef = useRef<HTMLDivElement>(null);
+
+  // Load persisted language
+  useEffect(() => {
+    try {
+      const savedLang = localStorage.getItem("mineguard_language");
+      if (savedLang) setCurrentLang(savedLang);
+    } catch (e) {}
+  }, []);
 
   // Close dropdowns on outside click
   useEffect(() => {
@@ -95,68 +108,31 @@ export default function HeaderNavActions() {
 
   const handleMarkAllRead = () => {
     setNotifications(notifications.map(n => ({ ...n, unread: false })));
-    setToastMsg("All notifications marked as read!");
-    setTimeout(() => setToastMsg(null), 2500);
   };
 
-  const handleDismiss = (id: string, e?: React.MouseEvent) => {
-    if (e) e.stopPropagation();
+  const handleDismiss = (id: string) => {
     setNotifications(notifications.filter(n => n.id !== id));
   };
 
-  const handleAlertClick = (n: NotificationItem) => {
-    // Mark as read
-    setNotifications(notifications.map(item => item.id === n.id ? { ...item, unread: false } : item));
-    setToastMsg(`Acknowledged: ${n.title}`);
-    setTimeout(() => setToastMsg(null), 3000);
-  };
-
-  const handleTriggerTestAlert = () => {
-    const newAlert: NotificationItem = {
-      id: `test-${Date.now()}`,
-      title: "🚨 SCADA Telemetry Simulated Alarm",
-      desc: "Instant live notification broadcast: Methane sensor #MS-04 verified at 1.05% CH₄.",
-      time: "Just now",
-      severity: "critical",
-      unread: true,
-      category: "Ventilation"
-    };
-    setNotifications([newAlert, ...notifications]);
-    setToastMsg("New critical notification dispatched to console!");
-    setTimeout(() => setToastMsg(null), 3000);
-  };
-
-  const handleSelectLang = (code: LanguageCode) => {
-    setLanguage(code);
+  const handleSelectLang = (code: string) => {
+    setCurrentLang(code);
     setLangOpen(false);
-    const selected = LANGUAGES.find(l => l.code === code);
-    setToastMsg(`Language switched to ${selected?.native} (${selected?.label})`);
-    setTimeout(() => setToastMsg(null), 3000);
+    try {
+      localStorage.setItem("mineguard_language", code);
+      // Dispatch custom event for immediate translation listener if active
+      window.dispatchEvent(new CustomEvent("mineguard_lang_changed", { detail: { lang: code } }));
+    } catch (e) {}
   };
 
   const selectedLangObj = LANGUAGES.find(l => l.code === currentLang) || LANGUAGES[0];
+
   const displayedNotifs = filterUnreadOnly ? notifications.filter(n => n.unread) : notifications;
 
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: 10, position: "relative" }}>
-      {/* Toast Notification */}
-      {toastMsg && (
-        <div style={{
-          position: "fixed", bottom: 24, right: 24, background: "#091d12", color: "white",
-          padding: "10px 18px", borderRadius: 8, border: "1px solid #52b788",
-          boxShadow: "0 8px 24px rgba(0,0,0,0.25)", zIndex: 9999999, display: "flex",
-          alignItems: "center", gap: 8, fontSize: 13, fontWeight: 600,
-          animation: "fadeIn 0.2s ease-out"
-        }}>
-          <CheckCircle size={15} color="#52b788" />
-          <span>{toastMsg}</span>
-        </div>
-      )}
-
+    <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
       {/* ── NOTIFICATIONS BELL BUTTON & DROPDOWN ── */}
       <div style={{ position: "relative" }} ref={notifRef}>
         <button
-          type="button"
           onClick={() => {
             setNotifOpen(!notifOpen);
             setLangOpen(false);
@@ -207,13 +183,14 @@ export default function HeaderNavActions() {
             position: "absolute",
             top: 46,
             right: 0,
-            width: 360,
+            width: 380,
             background: "white",
             borderRadius: 12,
             border: "1px solid #e2e8f0",
-            boxShadow: "0 16px 40px rgba(0,0,0,0.18)",
-            zIndex: 999999,
-            overflow: "hidden"
+            boxShadow: "0 12px 32px rgba(0,0,0,0.14)",
+            zIndex: 9999,
+            overflow: "hidden",
+            animation: "fadeIn 0.15s ease-out"
           }}>
             {/* Header */}
             <div style={{
@@ -228,46 +205,26 @@ export default function HeaderNavActions() {
                 <Bell size={15} color="#86efac" />
                 <span style={{ fontSize: 13.5, fontWeight: 700 }}>Statutory Alerts & Broadcasts</span>
               </div>
-              <div style={{ display: "flex", gap: 6 }}>
+              {unreadCount > 0 && (
                 <button
-                  type="button"
-                  onClick={handleTriggerTestAlert}
-                  title="Fire a test simulation alert"
+                  onClick={handleMarkAllRead}
                   style={{
-                    background: "rgba(82,183,136,0.25)",
-                    border: "1px solid rgba(82,183,136,0.4)",
+                    background: "rgba(255,255,255,0.15)",
+                    border: "none",
                     color: "#86efac",
                     borderRadius: 4,
-                    padding: "3px 7px",
-                    fontSize: 10.5,
-                    fontWeight: 700,
-                    cursor: "pointer"
+                    padding: "3px 8px",
+                    fontSize: 11,
+                    fontWeight: 600,
+                    cursor: "pointer",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 4
                   }}
                 >
-                  + Test
+                  <CheckCheck size={12} /> Mark all read
                 </button>
-                {unreadCount > 0 && (
-                  <button
-                    type="button"
-                    onClick={handleMarkAllRead}
-                    style={{
-                      background: "rgba(255,255,255,0.15)",
-                      border: "none",
-                      color: "#86efac",
-                      borderRadius: 4,
-                      padding: "3px 8px",
-                      fontSize: 11,
-                      fontWeight: 600,
-                      cursor: "pointer",
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 4
-                    }}
-                  >
-                    <CheckCheck size={12} /> Mark read
-                  </button>
-                )}
-              </div>
+              )}
             </div>
 
             {/* Filter Tabs */}
@@ -279,7 +236,6 @@ export default function HeaderNavActions() {
               fontSize: 12
             }}>
               <button
-                type="button"
                 onClick={() => setFilterUnreadOnly(false)}
                 style={{
                   background: !filterUnreadOnly ? "#e2e8f0" : "transparent",
@@ -295,7 +251,6 @@ export default function HeaderNavActions() {
                 All ({notifications.length})
               </button>
               <button
-                type="button"
                 onClick={() => setFilterUnreadOnly(true)}
                 style={{
                   background: filterUnreadOnly ? "#e2e8f0" : "transparent",
@@ -317,19 +272,17 @@ export default function HeaderNavActions() {
               {displayedNotifs.length === 0 ? (
                 <div style={{ padding: "30px 20px", textAlign: "center", color: "#94a3b8" }}>
                   <CheckCircle size={32} style={{ margin: "0 auto 8px", opacity: 0.5 }} />
-                  <p style={{ fontSize: 13, fontWeight: 600, margin: 0 }}>All clear! No pending alerts.</p>
+                  <p style={{ fontSize: 13, fontWeight: 600, margin: 0 }}>All clear! No alerts.</p>
                 </div>
               ) : (
                 displayedNotifs.map(n => (
                   <div
                     key={n.id}
-                    onClick={() => handleAlertClick(n)}
                     style={{
                       padding: "12px 16px",
                       borderBottom: "1px solid #f1f5f9",
                       background: n.unread ? "#f0fdf4" : "white",
-                      transition: "background 0.1s",
-                      cursor: "pointer"
+                      transition: "background 0.1s"
                     }}
                   >
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 3 }}>
@@ -343,8 +296,7 @@ export default function HeaderNavActions() {
                         </span>
                       </div>
                       <button
-                        type="button"
-                        onClick={(e) => handleDismiss(n.id, e)}
+                        onClick={() => handleDismiss(n.id)}
                         title="Dismiss"
                         style={{ background: "none", border: "none", color: "#94a3b8", cursor: "pointer", padding: 2 }}
                       >
@@ -386,7 +338,6 @@ export default function HeaderNavActions() {
       {/* ── MULTILINGUAL SWITCHER BUTTON & DROPDOWN ── */}
       <div style={{ position: "relative" }} ref={langRef}>
         <button
-          type="button"
           onClick={() => {
             setLangOpen(!langOpen);
             setNotifOpen(false);
@@ -418,17 +369,17 @@ export default function HeaderNavActions() {
             position: "absolute",
             top: 46,
             right: 0,
-            width: 260,
+            width: 250,
             background: "white",
             borderRadius: 12,
             border: "1px solid #e2e8f0",
-            boxShadow: "0 16px 40px rgba(0,0,0,0.18)",
-            zIndex: 999999,
+            boxShadow: "0 12px 32px rgba(0,0,0,0.14)",
+            zIndex: 9999,
             overflow: "hidden",
             padding: "6px 0"
           }}>
             <div style={{ padding: "6px 14px", fontSize: 11, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase" }}>
-              Select Portal Language
+              Select Colliery Language
             </div>
 
             {LANGUAGES.map(lang => {

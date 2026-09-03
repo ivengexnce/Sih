@@ -2,6 +2,7 @@
 import { useState, useEffect } from "react";
 import { BarChart2, Plus, Download, FileText, TrendingUp, Calendar, ArrowRight, CheckCircle, Clock, Sparkles, Loader2, X } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts";
+import { useTranslation } from "@/app/components/LanguageContext";
 
 const monthlyData = [
   { month: "Nov", inspections: 98,  violations: 42, compliance: 74 },
@@ -33,6 +34,7 @@ const typeColors: Record<string, { bg: string; color: string }> = {
 };
 
 export default function ReportsPage() {
+  const { t } = useTranslation();
   const [reportsList, setReportsList] = useState(reports);
   const [showModal, setShowModal] = useState(false);
   const [generating, setGenerating] = useState(false);
@@ -298,7 +300,7 @@ Attestation: Verified by Mine Manager & Safety Officer under CMR 2017
           onClick={() => setShowModal(true)}
           style={{ display: "flex", alignItems: "center", gap: 6, padding: "9px 16px", background: "#2d6a4f", color: "white", border: "none", borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: "pointer", boxShadow: "0 2px 8px rgba(45,106,79,0.25)" }}
         >
-          <Plus size={14} /> Generate Report
+          <Plus size={14} /> {t("btn.generate_report", "Generate Report")}
         </button>
       </div>
 

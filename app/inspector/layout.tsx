@@ -8,14 +8,14 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState, useEffect } from "react";
 import { storageService } from "@/lib/storage";
-import HeaderNavActions from "@/app/components/HeaderNavActions";
+import { useTranslation } from "@/app/components/LanguageContext";
 
 const navItems = [
-  { icon: LayoutDashboard, label: "Dashboard",   href: "/inspector" },
-  { icon: ClipboardCheck,  label: "Inspections", href: "/inspector/inspections" },
-  { icon: AlertTriangle,   label: "Violations",  href: "/inspector/violations" },
-  { icon: ListChecks,      label: "Actions",     href: "/inspector/actions" },
-  { icon: Settings,        label: "Settings",    href: "/inspector/settings" },
+  { icon: LayoutDashboard, key: "nav.dashboard", defaultLabel: "Dashboard",   href: "/inspector" },
+  { icon: ClipboardCheck,  key: "nav.inspections", defaultLabel: "Inspections", href: "/inspector/inspections" },
+  { icon: AlertTriangle,   key: "nav.violations",  defaultLabel: "Violations",  href: "/inspector/violations" },
+  { icon: ListChecks,      key: "nav.actions",     defaultLabel: "Actions",     href: "/inspector/actions" },
+  { icon: Settings,        key: "nav.settings",    defaultLabel: "Settings",    href: "/inspector/settings" },
 ];
 
 const routeMeta: Record<string, { title: string; subtitle: string }> = {
@@ -49,9 +49,9 @@ const notifications = [
 
 export default function InspectorLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const { t } = useTranslation();
   const [showNotifications, setShowNotifications] = useState(false);
   const [unreadCount, setUnreadCount] = useState(notifications.length);
-  const [lang, setLang] = useState("en");
   const [allocatedMine, setAllocatedMine] = useState("Rajpura Coal Mine");
   const [officerName, setOfficerName] = useState("Inspector Smith");
 
@@ -106,11 +106,11 @@ export default function InspectorLayout({ children }: { children: React.ReactNod
 
         {/* Nav Links */}
         <nav style={{ flex: 1, padding: "12px 10px", overflowY: "auto" }}>
-          {navItems.map(({ icon: Icon, label, href }) => {
+          {navItems.map(({ icon: Icon, key, defaultLabel, href }) => {
             const active = pathname === href;
             return (
               <Link
-                key={label}
+                key={key}
                 href={href}
                 style={{
                   display: "flex",
@@ -120,8 +120,8 @@ export default function InspectorLayout({ children }: { children: React.ReactNod
                   borderRadius: 8,
                   color: active ? "white" : "rgba(255,255,255,0.6)",
                   background: active ? "#1a3d28" : "transparent",
-                  fontSize: 13.5,
-                  fontWeight: active ? 600 : 500,
+                  fontSize: 13,
+                  fontWeight: active ? 700 : 500,
                   marginBottom: 3,
                   textDecoration: "none",
                   transition: "all 0.15s ease",
@@ -129,7 +129,7 @@ export default function InspectorLayout({ children }: { children: React.ReactNod
                 }}
               >
                 <Icon size={17} strokeWidth={active ? 2.3 : 1.8} color={active ? "#52b788" : "currentColor"} />
-                <span>{label}</span>
+                <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{t(key, defaultLabel)}</span>
               </Link>
             );
           })}

@@ -7,13 +7,15 @@ import {
 import {
   ClipboardCheck, AlertTriangle, ListChecks, ArrowRight,
   TrendingUp, TrendingDown, Info, CalendarCheck, UserPlus, BarChart3,
-  PlusCircle, ShieldAlert, BrainCircuit, Sparkles, Activity, CheckCircle
+  PlusCircle, ShieldAlert, BrainCircuit, Sparkles, Activity, CheckCircle,
+  Wrench, UploadCloud, FileText
 } from "lucide-react";
 import Link from "next/link";
 import { useState, useEffect } from "react";
 import AiRiskModal, { AiRiskTarget } from "@/app/components/AiRiskModal";
 import { storageService } from "@/lib/storage";
 import { getCollieryProfile, CollieryProfile } from "@/lib/collieryData";
+import { useTranslation } from "@/app/components/LanguageContext";
 
 // Data
 const complianceData = [

@@ -1,6 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
 import { ListChecks, Plus, Clock, CheckCircle, AlertTriangle, User, Calendar } from "lucide-react";
+import { useTranslation } from "@/app/components/LanguageContext";
 
 type Action = { id: string; title: string; assignee: string; due: string; priority: string; category: string; relatedTo: string };
 type Column = { status: string; color: string; bg: string; icon: React.ReactNode; items: Action[] };
@@ -46,6 +47,7 @@ const priorityStyle = (p: string) => {
 };
 
 export default function ActionsPage() {
+  const { t } = useTranslation();
   const [columnsData, setColumnsData] = useState(actions);
   const [showAddModal, setShowAddModal] = useState(false);
   const [toastMsg, setToastMsg] = useState<string | null>(null);
@@ -300,7 +302,7 @@ export default function ActionsPage() {
           onClick={() => setShowAddModal(true)}
           style={{ display: "flex", alignItems: "center", gap: 6, padding: "9px 16px", background: "#2d6a4f", color: "white", border: "none", borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: "pointer", boxShadow: "0 2px 8px rgba(45,106,79,0.25)" }}
         >
-          <Plus size={14} /> Add Action
+          <Plus size={14} /> {t("btn.add_action", "Add Action")}
         </button>
       </div>
 

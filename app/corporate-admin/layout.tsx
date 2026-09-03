@@ -7,28 +7,29 @@ import {
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
-import HeaderNavActions from "@/app/components/HeaderNavActions";
+import { useTranslation } from "@/app/components/LanguageContext";
+import HeaderNavActions from "../components/HeaderNavActions";
 
 const navItems = [
-  { icon: LayoutDashboard, label: "Dashboard",       href: "/corporate-admin" },
-  { icon: Mountain,        label: "Mines",           href: "/corporate-admin/mines" },
-  { icon: Scale,           label: "Manager Cadre",   href: "/corporate-admin/manager-assignment" },
-  { icon: Compass,         label: "GIS Map",         href: "/corporate-admin/gis-map" },
-  { icon: BrainCircuit,    label: "AI Analytics",    href: "/corporate-admin/ai-analytics" },
-  { icon: ShieldCheck,     label: "Compliance",      href: "/corporate-admin/compliance" },
-  { icon: BarChart2,       label: "Reports",         href: "/corporate-admin/reports" },
-  { icon: Users,           label: "Team",            href: "/corporate-admin/team" },
-  { icon: Settings,        label: "Settings",        href: "/corporate-admin/settings" },
+  { icon: LayoutDashboard, key: "nav.dashboard", defaultLabel: "Dashboard", href: "/corporate-admin" },
+  { icon: Mountain, key: "nav.mines", defaultLabel: "Mines", href: "/corporate-admin/mines" },
+  { icon: Scale, key: "nav.assignment", defaultLabel: "Manager Cadre", href: "/corporate-admin/manager-assignment" },
+  { icon: Compass, key: "nav.gis", defaultLabel: "GIS Map", href: "/corporate-admin/gis-map" },
+  { icon: BrainCircuit, key: "nav.ai", defaultLabel: "AI Analytics", href: "/corporate-admin/ai-analytics" },
+  { icon: ShieldCheck, key: "nav.compliance", defaultLabel: "Compliance", href: "/corporate-admin/compliance" },
+  { icon: BarChart2, key: "nav.reports", defaultLabel: "Reports", href: "/corporate-admin/reports" },
+  { icon: Users, key: "nav.team", defaultLabel: "Team", href: "/corporate-admin/team" },
+  { icon: Settings, key: "nav.settings", defaultLabel: "Settings", href: "/corporate-admin/settings" },
 ];
 
 export default function CorporateAdminLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const [lang, setLang] = useState("en");
+  const { t } = useTranslation();
 
   return (
     <div style={{ display: "flex", minHeight: "100vh", background: "#f8faf9", fontFamily: "'Inter', -apple-system, sans-serif" }}>
       {/* Sidebar */}
-      <aside style={{ width: 216, minHeight: "100vh", background: "#0f2318", display: "flex", flexDirection: "column", flexShrink: 0 }}>
+      <aside style={{ width: 228, minHeight: "100vh", background: "#0f2318", display: "flex", flexDirection: "column", flexShrink: 0 }}>
         <div style={{ padding: "20px 18px 16px", borderBottom: "1px solid rgba(255,255,255,0.08)" }}>
           <Link href="/" style={{ display: "flex", alignItems: "center", gap: 11, textDecoration: "none" }}>
             <div style={{
@@ -48,12 +49,12 @@ export default function CorporateAdminLayout({ children }: { children: React.Rea
         </div>
 
         <nav style={{ flex: 1, padding: "12px 10px" }}>
-          {navItems.map(({ icon: Icon, label, href }) => {
+          {navItems.map(({ icon: Icon, key, defaultLabel, href }) => {
             const active = pathname === href;
             return (
-              <Link key={label} href={href} style={{ display: "flex", alignItems: "center", gap: 10, padding: "9px 12px", borderRadius: 8, color: active ? "white" : "rgba(255,255,255,0.55)", background: active ? "#1a3d28" : "transparent", fontSize: 13.5, fontWeight: 500, marginBottom: 2, textDecoration: "none" }}>
+              <Link key={key} href={href} style={{ display: "flex", alignItems: "center", gap: 10, padding: "9px 12px", borderRadius: 8, color: active ? "white" : "rgba(255,255,255,0.65)", background: active ? "#1a3d28" : "transparent", fontSize: 13, fontWeight: active ? 700 : 500, marginBottom: 2, textDecoration: "none" }}>
                 <Icon size={16} strokeWidth={active ? 2.2 : 1.8} />
-                <span>{label}</span>
+                <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{t(key, defaultLabel)}</span>
               </Link>
             );
           })}
@@ -69,7 +70,7 @@ export default function CorporateAdminLayout({ children }: { children: React.Rea
 
       {/* Main Area */}
       <main style={{ flex: 1, display: "flex", flexDirection: "column" }}>
-        
+
         {/* Topbar */}
         <header style={{ padding: "18px 28px", display: "flex", alignItems: "center", justifyContent: "space-between", background: "white", borderBottom: "1px solid #e5e7eb" }}>
           <div>

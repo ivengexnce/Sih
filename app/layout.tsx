@@ -1,9 +1,10 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import ClientProviders from "./components/ClientProviders";
 
 export const metadata: Metadata = {
-  title: "MineGuard – Mine Manager Dashboard",
-  description: "Mining safety management dashboard",
+  title: "MineGuard – Mining Safety & Telemetry Management",
+  description: "DGMS-compliant colliery safety management dashboard",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
@@ -14,7 +15,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
       </head>
-      <body style={{ margin: 0, padding: 0 }}>{children}</body>
+      <body style={{ margin: 0, padding: 0 }}>
+        <ClientProviders>{children}</ClientProviders>
+      </body>
     </html>
   );
 }

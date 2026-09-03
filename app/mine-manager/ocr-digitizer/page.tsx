@@ -84,7 +84,7 @@ export default function OcrDigitizerPage() {
   const [scanStep, setScanStep] = useState<string>("");
   const [extractedData, setExtractedData] = useState<any>(SAMPLE_CIRCULARS_CATALOG["DGMS-CIRC-2024-02"]);
   const [activeTab, setActiveTab] = useState<"mandates" | "statutory" | "raw" | "ai_qa">("mandates");
-  
+
   // Visual document controls
   const [zoomLevel, setZoomLevel] = useState(100);
   const [rotation, setRotation] = useState(0);
@@ -122,7 +122,7 @@ export default function OcrDigitizerPage() {
     setSelectedDocId(docId);
     setScanning(true);
     setScanStep("Reading Gazette raster stream...");
-    
+
     setTimeout(() => setScanStep("Running Layout & Bounding Box Analysis..."), 200);
     setTimeout(() => setScanStep("Extracting Statutory Mandates & CMR 2017 References..."), 450);
 
@@ -160,7 +160,7 @@ export default function OcrDigitizerPage() {
     setTimeout(() => {
       const isEc = name.toLowerCase().includes("ec") || name.toLowerCase().includes("env");
       const baseDoc = isEc ? SAMPLE_CIRCULARS_CATALOG["MOEF-EC-2023-781"] : SAMPLE_CIRCULARS_CATALOG["DGMS-CIRC-2024-02"];
-      
+
       const newExtracted = {
         ...baseDoc,
         doc_id: `UPLOAD-${Date.now().toString().slice(-4)}`,
@@ -196,12 +196,12 @@ export default function OcrDigitizerPage() {
 
   const handleInjectAction = (mandateText?: string) => {
     const itemsToInject = mandateText ? [mandateText] : (extractedData?.mandates || []);
-    
+
     // Save into localStorage under mineguard_custom_actions
     try {
       const existingStr = localStorage.getItem("mineguard_custom_actions");
       const existing = existingStr ? JSON.parse(existingStr) : [];
-      
+
       const newActions = itemsToInject.map((m: string, i: number) => ({
         id: `ACT-OCR-${Date.now().toString().slice(-4)}-${i + 1}`,
         title: m,
@@ -607,7 +607,7 @@ export default function OcrDigitizerPage() {
 
       {/* MAIN TWO-PANE SIDE-BY-SIDE OCR WORKBENCH */}
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1.15fr", gap: 18 }}>
-        
+
         {/* ================= LEFT PANE: DOCUMENT & BOUNDING BOX VISUALIZER ================= */}
         <div style={{
           background: "white", border: "1px solid #e2e8f0", borderRadius: 14, overflow: "hidden",
@@ -933,7 +933,7 @@ export default function OcrDigitizerPage() {
 
           {/* Content Pane */}
           <div style={{ padding: 18, overflowY: "auto", maxHeight: "660px", flex: 1 }}>
-            
+
             {/* Meta Card Header (always visible on top of structured tabs) */}
             <div style={{
               background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: 10, padding: 14,
