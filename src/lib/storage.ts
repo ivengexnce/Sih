@@ -216,10 +216,10 @@ class StorageService {
   }
 
   // --- Officer / Auth Management ---
-  public saveOfficerAccount(officer: OfficerProfile): void {
-    if (typeof window === "undefined") return;
+  public async saveOfficerAccount(officer: OfficerProfile): Promise<{ success: boolean; error?: string }> {
+    if (typeof window === "undefined") return { success: true };
 
-    // 1. Always update LocalStorage for immediate zero-latency demo persistence
+    // 1. Always update LocalStorage for immediate session persistence
     const existing = this.getAllOfficers();
     const updated = existing.filter(o => o.email.toLowerCase() !== officer.email.toLowerCase());
     updated.push({
@@ -231,10 +231,11 @@ class StorageService {
     // Also set current active session
     this.saveCurrentSession(officer);
 
-    // 2. If Firebase credentials are provided, sync to Firebase Auth & Firestore
+    // 2. Sync to Firebase Auth & Firestore
     if (this.mode === "firebase" || isFirebaseConfigured()) {
-      this.syncOfficerToFirebase(officer);
+      return await this.syncOfficerToFirebase(officer);
     }
+    return { success: true };
   }
 
   public getAllOfficers(): OfficerProfile[] {
@@ -300,8 +301,8 @@ class StorageService {
     this.saveCurrentSession(officer);
   }
 
-  public saveAccount(account: any): void {
-    this.saveOfficerAccount({
+  public async saveAccount(account: any): Promise<{ success: boolean; error?: string }> {
+    return await this.saveOfficerAccount({
       name: account.fullName || account.name,
       email: account.email,
       phone: account.phone,
@@ -430,15 +431,14 @@ class StorageService {
     }
   }
 
-  // --- Async Firebase Sync Handlers (Active when NEXT_PUBLIC_FIREBASE_API_KEY is configured) ---
-  public async syncOfficerToFirebase(officer: OfficerProfile) {
+  // --- Firebase Cloud Sync Adapters (Bidirectional Live Operations) ---
+  public async syncOfficerToFirebase(officer: OfficerProfile): Promise<{ success: boolean; uid?: string; error?: string }> {
     try {
-      if (!auth || !db) return;
-
+      if (!db) return { success: false, error: "Database not initialized" };
       let uid = officer.id || "";
 
-      // 1. If officer has email & password, register/provision Firebase Auth user
-      if (officer.password && officer.email) {
+      // 1. Register/provision Firebase Auth user with email & password
+      if (officer.password && officer.email && auth) {
         try {
           const cred = await createUserWithEmailAndPassword(auth, officer.email.trim(), officer.password);
           uid = cred.user.uid;
@@ -451,7 +451,7 @@ class StorageService {
               const signinCred = await signInWithEmailAndPassword(auth, officer.email.trim(), officer.password);
               uid = signinCred.user.uid;
             } catch {
-              console.log("[Firebase Auth] Account exists, continuing to update Firestore profile.");
+              console.log("[Firebase Auth] Account exists, continuing to write Firestore profile.");
             }
           } else {
             console.warn("[Firebase Auth] Provisioning notice:", authErr?.message || authErr);
@@ -459,9 +459,12 @@ class StorageService {
         }
       }
 
+      const emailDocKey = officer.email.toLowerCase().trim().replace(/[^a-zA-Z0-9]/g, "_");
+      const effectiveUid = uid || auth?.currentUser?.uid || emailDocKey;
+
       // 2. Prepare structured profile document for Firestore
       const profilePayload = {
-        uid: uid || officer.email.toLowerCase().replace(/[^a-zA-Z0-9]/g, "_"),
+        uid: effectiveUid,
         name: officer.name,
         email: officer.email.toLowerCase().trim(),
         phone: officer.phone || "",
@@ -477,27 +480,23 @@ class StorageService {
         updatedAt: new Date().toISOString(),
       };
 
-      // 3. Write to /users, /inspectors, and /officers collections
-      if (uid) {
-        await setDoc(doc(db, "users", uid), profilePayload, { merge: true });
-        if (officer.role === "inspector") {
-          await setDoc(doc(db, "inspectors", uid), {
-            ...profilePayload,
-            inspectorId: uid,
-          }, { merge: true });
-        }
-      }
-
-      // Also maintain a document keyed by email identifier for universal lookup
-      const emailDocKey = officer.email.toLowerCase().trim().replace(/[^a-zA-Z0-9]/g, "_");
-      await setDoc(doc(db, "officers", emailDocKey), profilePayload, { merge: true });
+      // 3. Write directly to /users, /inspectors, /officers, and /inspectors_by_email collections in Firestore
+      await setDoc(doc(db, "users", effectiveUid), profilePayload, { merge: true });
       if (officer.role === "inspector") {
+        await setDoc(doc(db, "inspectors", effectiveUid), {
+          ...profilePayload,
+          inspectorId: effectiveUid,
+        }, { merge: true });
         await setDoc(doc(db, "inspectors_by_email", emailDocKey), profilePayload, { merge: true });
       }
 
-      console.log("[Firebase Cloud Firestore Sync] Successfully synchronized officer profile:", officer.email);
-    } catch (err) {
-      console.warn("[Firebase Cloud Storage Sync] Background sync deferred:", err);
+      await setDoc(doc(db, "officers", emailDocKey), profilePayload, { merge: true });
+
+      console.log("[Firebase Cloud Firestore] Successfully synchronized officer profile to database:", officer.email);
+      return { success: true, uid: effectiveUid };
+    } catch (err: any) {
+      console.warn("[Firebase Cloud Storage Sync] Profile sync error:", err);
+      return { success: false, error: err?.message || "Failed to sync profile to database" };
     }
   }
 

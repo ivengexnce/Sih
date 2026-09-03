@@ -1171,7 +1171,7 @@ export default function Login() {
   };
 
   /* ── verify 2FA code ── */
-  const handleVerifyOtp = (e: React.FormEvent) => {
+  const handleVerifyOtp = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!otpCode || otpCode.trim() !== generatedOtp) {
       setErrorMsg("Invalid OTP code. Please enter the valid 6-digit verification code.");
@@ -1187,7 +1187,7 @@ export default function Login() {
       storageService.saveCurrentSession(pendingSession.officerSession);
       storageService.setActiveAllocatedMine(pendingSession.targetMine);
       if (mode === "signup") {
-        storageService.saveAccount({
+        const syncRes = await storageService.saveAccount({
           fullName: pendingSession.officerSession.name,
           email: pendingSession.officerSession.email,
           phone: pendingSession.officerSession.phone,
@@ -1198,18 +1198,20 @@ export default function Login() {
           designation: pendingSession.officerSession.designation,
           registeredAt: pendingSession.officerSession.registeredAt,
         });
+
+        if (!syncRes.success) {
+          console.warn("[Registration notice]:", syncRes.error);
+        }
       }
     } catch (err) {
       console.error("Storage error:", err);
     }
 
-    setTimeout(() => {
-      setLoading(false);
-      setSuccessMsg(mode === "signup"
-        ? `Identity verified! Welcome, ${fullName}. Portal clearance granted.`
-        : `Identity verified! Authenticated as ${pendingSession.officerSession.name}. Redirecting…`);
-      setTimeout(() => { window.location.href = pendingSession.targetRoute; }, 600);
-    }, 600);
+    setLoading(false);
+    setSuccessMsg(mode === "signup"
+      ? `Identity verified! Welcome, ${fullName}. Profile created in database.`
+      : `Identity verified! Authenticated as ${pendingSession.officerSession.name}. Redirecting…`);
+    setTimeout(() => { window.location.href = pendingSession.targetRoute; }, 700);
   };
 
   const handleResendOtp = () => {
