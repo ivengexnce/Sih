@@ -1,0 +1,18 @@
+names:
+  0: loose_rock
+  1: rockfall
+  2: crack
+  3: water_seepage
+  4: water_pooling
+  5: damaged_support
+  6: blocked_ventilation
+  7: damaged_ventilation_duct
+  8: dust_cloud
+  9: smoke
+  10: debris_obstruction
+  11: unsafe_worker_area
+nc: 12
+path: C:\Users\Piyush\Desktop\sih\MineGuardAI\data\combined
+test: test/images
+train: train/images
+val: valid/images

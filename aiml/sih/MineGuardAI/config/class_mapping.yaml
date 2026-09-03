@@ -1,0 +1,55 @@
+# MineGuard AI - Class Mapping Taxonomy Configuration
+taxonomy_version: "1.0"
+
+target_classes:
+  0: "loose_rock"
+  1: "rockfall"
+  2: "crack"
+  3: "water_seepage"
+  4: "water_pooling"
+  5: "damaged_support"
+  6: "blocked_ventilation"
+  7: "damaged_ventilation_duct"
+  8: "dust_cloud"
+  9: "smoke"
+  10: "debris_obstruction"
+  11: "unsafe_worker_area"
+
+synonym_mappings:
+  # Rock Hazards
+  "fallen rock": "rockfall"
+  "rock fall": "rockfall"
+  "rockfall": "rockfall"
+  "loose rock": "loose_rock"
+  "hanging rock": "loose_rock"
+  "unstable rock": "loose_rock"
+
+  # Cracks & Water
+  "concrete crack": "crack"
+  "wall crack": "crack"
+  "roof crack": "crack"
+  "fracture": "crack"
+  "water leak": "water_seepage"
+  "water leakage": "water_seepage"
+  "seepage": "water_seepage"
+  "drip": "water_seepage"
+  "puddle": "water_pooling"
+  "water pool": "water_pooling"
+
+  # Support & Ventilation
+  "broken prop": "damaged_support"
+  "damaged arch": "damaged_support"
+  "bent steel": "damaged_support"
+  "damaged duct": "damaged_ventilation_duct"
+  "torn duct": "damaged_ventilation_duct"
+  "blocked duct": "blocked_ventilation"
+  "blocked air passage": "blocked_ventilation"
+
+  # Atmospheric & Obstructions
+  "dust": "dust_cloud"
+  "coal dust": "dust_cloud"
+  "smoke": "smoke"
+  "fire smoke": "smoke"
+  "debris": "debris_obstruction"
+  "blocked path": "debris_obstruction"
+  "hazard zone worker": "unsafe_worker_area"

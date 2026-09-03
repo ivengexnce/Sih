@@ -1,0 +1,24 @@
+# MineGuard AI - Hazard Severity Rules & Risk Thresholds
+# Note: Prototype/demo risk weights for visual hazard scoring.
+
+severity_weights:
+  rockfall: 5
+  loose_rock: 5
+  damaged_support: 5
+  water_seepage: 4
+  crack: 5
+  blocked_ventilation: 5
+  damaged_ventilation_duct: 4
+  water_pooling: 3
+  dust_cloud: 3
+  debris_obstruction: 3
+  smoke: 4
+  unsafe_worker_area: 4
+
+risk_thresholds:
+  LOW: [0, 20]
+  MEDIUM: [21, 40]
+  HIGH: [41, 70]
+  CRITICAL: [71, 100]
+
+sensor_warning: "Visual evidence detected from image. Physical mine conditions (e.g. airflow velocity, methane, oxygen, CO concentrations) cannot be confirmed from camera image alone and require gas/air sensors."

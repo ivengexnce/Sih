@@ -1,0 +1,13 @@
+# MineGuard AI - Risk Fusion Engine Rules & Thresholds
+fusion_weights:
+  hazard_risk_weight: 0.40
+  ppe_risk_weight: 0.35
+  critical_hazard_weight: 0.25
+
+risk_thresholds:
+  LOW: [0, 20]
+  MEDIUM: [21, 40]
+  HIGH: [41, 70]
+  CRITICAL: [71, 100]
+
+disclaimer: "Visual evidence combined from independent PPE Detection & Mine Hazard Detection models. Physical gas/airflow sensors recommended for atmospheric verification."

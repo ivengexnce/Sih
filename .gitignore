@@ -1,8 +1,8 @@
 # See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
 
-# dependencies
-/node_modules
-/.pnp
+# Dependencies
+node_modules/
+.pnp
 .pnp.*
 .yarn/*
 !.yarn/patches
@@ -10,32 +10,72 @@
 !.yarn/releases
 !.yarn/versions
 
-# testing
-/coverage
+# Python & AI/ML Caches
+__pycache__/
+*.py[cod]
+*$py.class
+*.cache
+labels.cache
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.ipynb_checkpoints/
+*.egg-info/
 
-# next.js
-/.next/
-/out/
+# Virtual Environments
+venv/
+.venv/
+env/
+ENV/
+env.bak/
+venv.bak/
 
-# production
-/build
+# AI/ML Model Weights & Heavy Binary Artifacts
+*.pt
+*.pth
+*.onnx
+*.pkl
+*.bin
+*.safetensors
+*.h5
+*.tflite
+*.engine
 
-# misc
+# AI/ML Datasets & Training Runs
+runs/
+aiml/**/data/
+aiml/**/reports/annotations/
+aiml/**/reports/figures/
+aiml/**/reports/hazard_model/*.png
+
+
+# Testing & Build Outputs
+coverage/
+.next/
+out/
+build/
+dist/
+.expo/
+web-build/
+
+# Miscellaneous & System
 .DS_Store
+Thumbs.db
 *.pem
-
-# debug
+*.log
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
 
-# env files (can opt-in for committing if needed)
+# Environment & Secret files
 .env*
 
-# vercel
+# Vercel & TypeScript
 .vercel
-
-# typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Nested Repositories (if managed independently)
+MineGuard/
+
