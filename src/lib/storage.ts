@@ -1,7 +1,10 @@
-// Unified Storage Service: Firebase Storage & Firestore with LocalStorage Demo Fallback
-// Purpose: "for storage use firebase but rightnow for demo use local storage"
-
-import { isFirebaseConfigured, getStorageEngineMode } from "./firebase";
+import { isFirebaseConfigured, getStorageEngineMode, auth, db } from "./firebase";
+import {
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword,
+  updateProfile
+} from "firebase/auth";
+import { doc, setDoc } from "firebase/firestore";
 
 export interface OfficerProfile {
   id?: string;
@@ -218,8 +221,8 @@ class StorageService {
     // Also set current active session
     this.saveCurrentSession(officer);
 
-    // 2. If Firebase credentials are provided, sync asynchronously to Firestore
-    if (this.mode === "firebase") {
+    // 2. If Firebase credentials are provided, sync to Firebase Auth & Firestore
+    if (this.mode === "firebase" || isFirebaseConfigured()) {
       this.syncOfficerToFirebase(officer);
     }
   }
@@ -418,28 +421,117 @@ class StorageService {
   }
 
   // --- Async Firebase Sync Handlers (Active when NEXT_PUBLIC_FIREBASE_API_KEY is configured) ---
-  private async syncOfficerToFirebase(officer: OfficerProfile) {
+  public async syncOfficerToFirebase(officer: OfficerProfile) {
     try {
-      // In production with Firebase SDK initialized, syncs to Firestore collection 'officers'
-      console.log("[Firebase Cloud Storage Sync] Synchronized officer profile:", officer.email);
+      if (!auth || !db) return;
+
+      let uid = officer.id || "";
+
+      // 1. If officer has email & password, register/provision Firebase Auth user
+      if (officer.password && officer.email) {
+        try {
+          const cred = await createUserWithEmailAndPassword(auth, officer.email.trim(), officer.password);
+          uid = cred.user.uid;
+          if (officer.name) {
+            await updateProfile(cred.user, { displayName: officer.name });
+          }
+        } catch (authErr: any) {
+          if (authErr?.code === "auth/email-already-in-use") {
+            try {
+              const signinCred = await signInWithEmailAndPassword(auth, officer.email.trim(), officer.password);
+              uid = signinCred.user.uid;
+            } catch {
+              console.log("[Firebase Auth] Account exists, continuing to update Firestore profile.");
+            }
+          } else {
+            console.warn("[Firebase Auth] Provisioning notice:", authErr?.message || authErr);
+          }
+        }
+      }
+
+      // 2. Prepare structured profile document for Firestore
+      const profilePayload = {
+        uid: uid || officer.email.toLowerCase().replace(/[^a-zA-Z0-9]/g, "_"),
+        name: officer.name,
+        email: officer.email.toLowerCase().trim(),
+        phone: officer.phone || "",
+        role: officer.role,
+        securityRole: officer.securityRole || (officer.role === "inspector" ? "Statutory Safety Inspector" : "First Class Colliery Manager"),
+        allocatedMine: officer.allocatedMine || "SECL Gevra Mega Opencast",
+        mineName: officer.allocatedMine || "SECL Gevra Mega Opencast",
+        designation: officer.designation || (officer.role === "inspector" ? "Statutory Mining Compliance Inspector" : "First Class Mine Manager"),
+        officialId: officer.officialId || "",
+        certType: officer.certType || (officer.role === "inspector" ? "Statutory Inspector" : "First Class (Coal)"),
+        status: "ACTIVE",
+        registeredAt: officer.registeredAt || new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+
+      // 3. Write to /users, /inspectors, and /officers collections
+      if (uid) {
+        await setDoc(doc(db, "users", uid), profilePayload, { merge: true });
+        if (officer.role === "inspector") {
+          await setDoc(doc(db, "inspectors", uid), {
+            ...profilePayload,
+            inspectorId: uid,
+          }, { merge: true });
+        }
+      }
+
+      // Also maintain a document keyed by email identifier for universal lookup
+      const emailDocKey = officer.email.toLowerCase().trim().replace(/[^a-zA-Z0-9]/g, "_");
+      await setDoc(doc(db, "officers", emailDocKey), profilePayload, { merge: true });
+      if (officer.role === "inspector") {
+        await setDoc(doc(db, "inspectors_by_email", emailDocKey), profilePayload, { merge: true });
+      }
+
+      console.log("[Firebase Cloud Firestore Sync] Successfully synchronized officer profile:", officer.email);
     } catch (err) {
       console.warn("[Firebase Cloud Storage Sync] Background sync deferred:", err);
     }
   }
 
-  private async syncInspectionToFirebase(inspection: InspectionRecord) {
+  public async syncInspectionToFirebase(inspection: InspectionRecord) {
     try {
-      console.log("[Firebase Cloud Storage Sync] Synchronized inspection record:", inspection.id);
+      if (!db) return;
+      await setDoc(doc(db, "inspections", inspection.id), {
+        ...inspection,
+        syncedAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      }, { merge: true });
+      console.log("[Firebase Cloud Firestore Sync] Synchronized inspection record:", inspection.id);
     } catch (err) {
       console.warn("[Firebase Cloud Storage Sync] Inspection sync deferred:", err);
     }
   }
 
-  private async syncViolationToFirebase(violation: ViolationRecord) {
+  public async syncViolationToFirebase(violation: ViolationRecord) {
     try {
-      console.log("[Firebase Cloud Storage Sync] Synchronized hazard violation:", violation.id);
+      if (!db) return;
+      await setDoc(doc(db, "violations", violation.id), {
+        ...violation,
+        syncedAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      }, { merge: true });
+      console.log("[Firebase Cloud Firestore Sync] Synchronized hazard violation:", violation.id);
     } catch (err) {
       console.warn("[Firebase Cloud Storage Sync] Violation sync deferred:", err);
+    }
+  }
+
+  public async syncAllInspectionsToFirebase(): Promise<{ success: boolean; syncedCount: number }> {
+    try {
+      if (!db) return { success: false, syncedCount: 0 };
+      const inspections = this.getInspections();
+      let syncedCount = 0;
+      for (const insp of inspections) {
+        await this.syncInspectionToFirebase(insp);
+        syncedCount++;
+      }
+      return { success: true, syncedCount };
+    } catch (err) {
+      console.warn("Bulk sync error:", err);
+      return { success: false, syncedCount: 0 };
     }
   }
 }
