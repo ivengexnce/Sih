@@ -76,6 +76,3 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-# Nested Repositories (if managed independently)
-MineGuard/
-
