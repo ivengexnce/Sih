@@ -40,14 +40,15 @@
 | **16** | **OCR Document Digitization** | FR-9.1: Automated extraction of physical regulatory documents | OCR Regulatory Parser & CAPA Injection Studio | `[x]` | Automated text extraction from physical DGMS circulars, statutory approvals, and environmental clearances with one-click injection into the CAPA action queue ([`app/mine-manager/ocr-digitizer/page.tsx`](file:///c:/Users/Aasawari%20Bodke/Sih/app/mine-manager/ocr-digitizer/page.tsx), [`backend/ml/ocr_scanner.py`](file:///c:/Users/Aasawari%20Bodke/Sih/backend/ml/ocr_scanner.py)) |
 | **17** | **Blockchain-Based / Verifiable Audit Trails** | FR-10.1: Immutable ledger of compliance sign-offs | Digital Verification Badges, DGMS IDs & QR Codes | `[x]` | Digital Inspector ID with DGMS certification badges, QR verification code, immutable ISO inspection timestamps, and REST audit logging ([`app/inspector/settings/page.tsx`](file:///c:/Users/Aasawari%20Bodke/Sih/app/inspector/settings/page.tsx)) |
 | **18** | **Multilingual Conversational Interface** | Multilingual assistance for field workers (Hindi, regional languages) | Bilingual English & Hindi Dynamic Interface | `[x]` | Active English 🇬🇧 / हिंदी 🇮🇳 multilingual toggle in topbar across Mine Manager, Corporate Admin, and Safety Inspector portals |
+| **19** | **Progressive Web App (PWA) Offline Mode** | NFR-4: Offline capability for underground field inspectors | Serwist PWA Service Worker & Manifest | `[x]` | Service worker injected via `@serwist/next` caching static assets and API dictionaries, providing installable cross-platform app capabilities (`src/app/sw.ts`, `manifest.ts`) |
 
 ---
 
 ## 3. Quantitative Coverage Summary
 
 ```
-Total Requirements Analyzed: 18 Core Capabilities
-├── Fully Implemented [x]:              18 (100.0%)
+Total Requirements Analyzed: 19 Core Capabilities
+├── Fully Implemented [x]:              19 (100.0%)
 ├── Partially Implemented [-]:           0 (0.0%)
 └── Roadmap / Pending [ ]:               0 (0.0%)
 ```

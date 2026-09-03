@@ -24,6 +24,7 @@
 | 11 | **Audit Trail & Integrity Ledger** | ✅ Fully Implemented | SHA-256 Hashing, Immutable Event Logs |
 | 12 | **Multilingual Interface** | ✅ Fully Implemented | English 🇬🇧 & Hindi 🇮🇳 Topbar Toggles |
 | 13 | **Modern Glassmorphic UI/UX** | ✅ Fully Implemented | TailwindCSS v4, Recharts, Custom CSS Glow |
+| 14 | **Progressive Web App (PWA)** | ✅ Fully Implemented | Serwist Next.js Offline Caching & Manifest |
 
 ---
 
@@ -117,6 +118,13 @@ Three dedicated operational views tailored for specific organisational personas:
 ### 7. Multilingual Support
 - Real-time language switching between English 🇬🇧 and Hindi (हिंदी) 🇮🇳.
 - Integrated into the global topbar across all three portals (`app/mine-manager/layout.tsx`, `app/corporate-admin/layout.tsx`, `app/inspector/layout.tsx`).
+
+---
+
+### 8. Progressive Web App (PWA) Offline Architecture
+- Fully installable PWA using `@serwist/next` caching mechanisms.
+- **Offline Field Auditing**: Enables safety inspectors to cache API dictionaries and log hazard violations locally underground when network connectivity is lost.
+- **Service Worker integration**: Seamless injection into Next.js Webpack compilation mapping static assets and PWA `manifest.ts` properties to Native-like mobile experiences.
 
 ---
 
