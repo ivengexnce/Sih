@@ -3,7 +3,7 @@
 import {
   LayoutDashboard, Mountain, ClipboardCheck, AlertTriangle, ListChecks,
   BarChart2, Users, Wrench, FileText, Settings, ChevronDown, Calendar,
-  Compass, BrainCircuit, Scan, Activity, LogOut
+  Compass, BrainCircuit, Scan, Activity, LogOut, ScanFace
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -43,6 +43,7 @@ const navSections = [
     label: "Resources",
     items: [
       { icon: Users, key: "nav.team", defaultLabel: "Team", href: "/mine-manager/team" },
+      { icon: ScanFace, key: "nav.attendance", defaultLabel: "Attendance", href: "/mine-manager/attendance" },
       { icon: Wrench, key: "nav.equipment", defaultLabel: "Equipment", href: "/mine-manager/equipment" },
       { icon: FileText, key: "nav.documents", defaultLabel: "Documents", href: "/mine-manager/documents" },
       { icon: Settings, key: "nav.settings", defaultLabel: "Settings", href: "/mine-manager/settings" },

@@ -48,20 +48,36 @@ export default function ViolationsPage() {
   const [newDesc, setNewDesc] = useState("");
   const [newReporter, setNewReporter] = useState("Er. Rajesh Sharma");
 
-  useEffect(() => {
+  // Sync violations from localStorage and static list
+  const syncViolations = () => {
     try {
       const mine = storageService.getActiveAllocatedMine();
       setColliery(getCollieryProfile(mine));
 
       const stored = localStorage.getItem("mineguard_custom_violations");
-      if (stored) {
-        const parsed = JSON.parse(stored);
-        setViolationsList([...parsed, ...violations]);
-      }
+      const customList = stored ? JSON.parse(stored) : [];
+
+      const vMap = new Map<string, any>();
+      customList.forEach((v: any) => vMap.set(v.id, v));
+      violations.forEach((v: any) => {
+        if (!vMap.has(v.id)) vMap.set(v.id, v);
+      });
+
+      setViolationsList(Array.from(vMap.values()));
 
       const sess = storageService.getCurrentSession();
       if (sess?.name) setNewReporter(sess.name);
     } catch (e) {}
+  };
+
+  useEffect(() => {
+    syncViolations();
+    window.addEventListener("storage", syncViolations);
+    window.addEventListener("focus", syncViolations);
+    return () => {
+      window.removeEventListener("storage", syncViolations);
+      window.removeEventListener("focus", syncViolations);
+    };
   }, []);
 
   const handleCreateViolation = (e: React.FormEvent) => {
@@ -79,15 +95,13 @@ export default function ViolationsPage() {
       desc: newDesc.trim()
     };
 
-    const updated = [newVio, ...violationsList];
-    setViolationsList(updated);
-
     try {
       const stored = localStorage.getItem("mineguard_custom_violations");
       const existing = stored ? JSON.parse(stored) : [];
-      localStorage.setItem("mineguard_custom_violations", JSON.stringify([newVio, ...existing]));
+      localStorage.setItem("mineguard_custom_violations", JSON.stringify([newVio, ...existing.filter((x: any) => x.id !== newVio.id)]));
     } catch (err) {}
 
+    syncViolations();
     setShowLogModal(false);
     setNewDesc("");
     setToastMsg(`Violation ${newVio.id} successfully logged and flagged for CAPA remediation!`);
@@ -365,7 +379,7 @@ export default function ViolationsPage() {
                 const sv = severityStyle(v.severity);
                 return (
                   <div
-                    key={v.id}
+                    key={`${v.id}-${i}`}
                     style={{
                       padding: "14px 18px",
                       borderBottom: i < filtered.length - 1 ? "1px solid var(--surface-2)" : "none",

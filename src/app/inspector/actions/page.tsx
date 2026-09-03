@@ -4,7 +4,7 @@ import {
   ListChecks, CheckCircle, Clock, AlertTriangle, User,
   Calendar, Plus, Search, Filter, X, CheckSquare, Trash2
 } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 type Task = {
   id: string;
@@ -40,6 +40,42 @@ export default function InspectorActionsPage() {
   const [showModal, setShowModal] = useState(false);
   const [toastMsg, setToastMsg] = useState<string | null>(null);
 
+  // Sync tasks from static initialTasks + custom actions in localStorage
+  const syncTasks = () => {
+    try {
+      const stored = localStorage.getItem("mineguard_custom_actions");
+      const customActions = stored ? JSON.parse(stored) : [];
+
+      const mappedCustom: Task[] = customActions.map((a: any) => ({
+        id: a.id,
+        title: a.title,
+        relatedTo: a.relatedTo || "—",
+        due: a.due,
+        priority: a.priority || "Medium",
+        done: a.status === "On Track"
+      }));
+
+      // Deduplicate by ID
+      const taskMap = new Map<string, Task>();
+      mappedCustom.forEach(t => taskMap.set(t.id, t));
+      initialTasks.forEach(t => {
+        if (!taskMap.has(t.id)) taskMap.set(t.id, t);
+      });
+
+      setTasks(Array.from(taskMap.values()));
+    } catch (e) {}
+  };
+
+  useEffect(() => {
+    syncTasks();
+    window.addEventListener("storage", syncTasks);
+    window.addEventListener("focus", syncTasks);
+    return () => {
+      window.removeEventListener("storage", syncTasks);
+      window.removeEventListener("focus", syncTasks);
+    };
+  }, []);
+
   // New Action Form State
   const [newTitle, setNewTitle] = useState("");
   const [newPriority, setNewPriority] = useState<"High" | "Medium" | "Low">("High");
@@ -47,32 +83,63 @@ export default function InspectorActionsPage() {
   const [newRelated, setNewRelated] = useState("VIO-128");
 
   const toggle = (id: string) => {
-    setTasks(tasks.map(t => t.id === id ? { ...t, done: !t.done } : t));
+    setTasks(prev => {
+      const updated = prev.map(t => (t.id === id ? { ...t, done: !t.done } : t));
+      const target = updated.find(t => t.id === id);
+      if (target) {
+        try {
+          const stored = localStorage.getItem("mineguard_custom_actions");
+          const existing = stored ? JSON.parse(stored) : [];
+          const customIdx = existing.findIndex((a: any) => a.id === id);
+          if (customIdx >= 0) {
+            existing[customIdx].status = target.done ? "On Track" : "Due Soon";
+            localStorage.setItem("mineguard_custom_actions", JSON.stringify(existing));
+          }
+        } catch (e) {}
+      }
+      return updated;
+    });
   };
 
   const deleteTask = (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    setTasks(tasks.filter(t => t.id !== id));
+    setTasks(prev => prev.filter(t => t.id !== id));
+    try {
+      const stored = localStorage.getItem("mineguard_custom_actions");
+      if (stored) {
+        const existing = JSON.parse(stored);
+        const filtered = existing.filter((a: any) => a.id !== id);
+        localStorage.setItem("mineguard_custom_actions", JSON.stringify(filtered));
+      }
+    } catch (e) {}
   };
 
   const handleAddTask = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newTitle) return;
 
-    const newId = `ACT-0${tasks.length + 49}`;
-    const newTask: Task = {
+    const newId = `ACT-${Math.floor(100 + Math.random() * 899)}`;
+    const newTaskItem = {
       id: newId,
-      title: newTitle,
-      relatedTo: newRelated || "—",
+      title: newTitle.trim(),
+      assignee: "Field Safety Inspector",
       due: newDue,
       priority: newPriority,
-      done: false,
+      category: "Inspection Follow-up",
+      relatedTo: newRelated || "—",
+      status: "Due Soon"
     };
 
-    setTasks([newTask, ...tasks]);
+    try {
+      const stored = localStorage.getItem("mineguard_custom_actions");
+      const existing = stored ? JSON.parse(stored) : [];
+      localStorage.setItem("mineguard_custom_actions", JSON.stringify([newTaskItem, ...existing.filter((a: any) => a.id !== newId)]));
+    } catch (err) {}
+
+    syncTasks();
     setShowModal(false);
     setNewTitle("");
-    setToastMsg(`Action ${newId} created successfully!`);
+    setToastMsg(`Action ${newId} created successfully and synchronized with Mine Manager!`);
     setTimeout(() => setToastMsg(null), 3000);
   };
 
@@ -254,7 +321,7 @@ export default function InspectorActionsPage() {
               const ps = priorityStyle(task.priority);
               return (
                 <div
-                  key={task.id}
+                  key={`${task.id}-${i}`}
                   onClick={() => toggle(task.id)}
                   style={{
                     display: "flex",

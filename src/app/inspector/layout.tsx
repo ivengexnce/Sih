@@ -2,7 +2,7 @@
 
 import {
   LayoutDashboard, HardHat, ClipboardCheck, AlertTriangle, ListChecks,
-  ChevronDown, LogOut, Settings, MapPin, Activity, ShieldCheck
+  ChevronDown, LogOut, Settings, MapPin, Activity, ShieldCheck, ScanFace
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -15,6 +15,7 @@ import HeaderCollierySelector from "@/components/HeaderCollierySelector";
 
 const navItems = [
   { icon: LayoutDashboard, key: "nav.dashboard",   defaultLabel: "Dashboard",   href: "/inspector" },
+  { icon: ScanFace,        key: "nav.attendance",  defaultLabel: "Attendance",  href: "/inspector/attendance" },
   { icon: ClipboardCheck,  key: "nav.inspections", defaultLabel: "Inspections", href: "/inspector/inspections" },
   { icon: AlertTriangle,   key: "nav.violations",  defaultLabel: "Violations",  href: "/inspector/violations" },
   { icon: ListChecks,      key: "nav.actions",     defaultLabel: "Actions",     href: "/inspector/actions" },

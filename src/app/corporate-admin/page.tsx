@@ -1,16 +1,17 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   AreaChart, Area, LineChart, Line,
   XAxis, YAxis, ResponsiveContainer, Tooltip, PieChart, Pie, Cell
 } from "recharts";
 import {
   Mountain, ShieldCheck, FileText, AlertTriangle, TrendingUp, TrendingDown,
-  Info, ArrowRight, BrainCircuit, Sparkles, Globe, Compass, ShieldAlert
+  Info, ArrowRight, BrainCircuit, Sparkles, Globe, Compass, ShieldAlert, ScanFace
 } from "lucide-react";
 import Link from "next/link";
 import AiRiskModal, { AiRiskTarget } from "@/components/AiRiskModal";
+import { storageService } from "@/lib/storage";
 
 const complianceData = [
   { month: "Jan", score: 72 }, { month: "Feb", score: 75 },
@@ -71,6 +72,35 @@ function Sparkline({ data, color }: { data: number[]; color: string }) {
 
 export default function CorporateDashboard() {
   const [selectedAiTarget, setSelectedAiTarget] = useState<AiRiskTarget | null>(null);
+
+  // Live Aggregated Data
+  const [totalInspections, setTotalInspections] = useState(134);
+  const [totalViolations, setTotalViolations] = useState(22);
+  const [totalAttendance, setTotalAttendance] = useState(0);
+
+  const syncCorporateData = () => {
+    try {
+      const scheduled = storageService.getScheduledInspections();
+      const past = storageService.getInspections();
+      const vio = storageService.getViolations();
+      const customVio = storageService.getCustomViolations();
+      const att = storageService.getAttendance();
+
+      setTotalInspections(134 + scheduled.length + past.length);
+      setTotalViolations(22 + vio.length + customVio.length);
+      setTotalAttendance(att.length);
+    } catch (e) {}
+  };
+
+  useEffect(() => {
+    syncCorporateData();
+    window.addEventListener("storage", syncCorporateData);
+    window.addEventListener("focus", syncCorporateData);
+    return () => {
+      window.removeEventListener("storage", syncCorporateData);
+      window.removeEventListener("focus", syncCorporateData);
+    };
+  }, []);
 
   return (
     <div style={{ fontFamily: "var(--font-sans)" }}>
@@ -166,12 +196,13 @@ export default function CorporateDashboard() {
       </div>
 
       {/* Stat Cards */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12, marginBottom: 20 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 12, marginBottom: 20 }}>
         {[
           { icon: <Mountain size={20} color="white" />, label: "Total Active Mines",    value: "6",    change: "+1 this month",   positive: true,  spark: sparkData.mines,       color: "#2d6a4f", iconBg: "#2d6a4f" },
           { icon: <ShieldCheck size={20} color="white" />, label: "Portfolio Compliance", value: "88%",  change: "+3.2% vs last qtr", positive: true,  spark: sparkData.compliance,  color: "#52b788", iconBg: "#16a34a" },
-          { icon: <AlertTriangle size={20} color="white" />, label: "Critical Hazard Alerts", value: "22", change: "-12% vs last wk", positive: true, spark: sparkData.violations, color: "#dc2626", iconBg: "#dc2626" },
-          { icon: <FileText size={20} color="white" />, label: "DGMS Audits Conducted", value: "134",  change: "+8 this week",    positive: true,  spark: sparkData.inspections, color: "#2563eb", iconBg: "#2563eb" },
+          { icon: <AlertTriangle size={20} color="white" />, label: "Critical Hazard Alerts", value: totalViolations.toString(), change: "Live sync", positive: false, spark: sparkData.violations, color: "#dc2626", iconBg: "#dc2626" },
+          { icon: <FileText size={20} color="white" />, label: "DGMS Audits Conducted", value: totalInspections.toString(),  change: "Live sync",    positive: true,  spark: sparkData.inspections, color: "#2563eb", iconBg: "#2563eb" },
+          { icon: <ScanFace size={20} color="white" />, label: "Worker Attendance", value: totalAttendance.toString(),  change: "Live sync",    positive: true,  spark: sparkData.mines, color: "#f59e0b", iconBg: "#f59e0b" },
         ].map((card, i) => (
           <div key={i} style={{
             background: "white", borderRadius: 14,

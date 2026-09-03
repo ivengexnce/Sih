@@ -3,7 +3,7 @@ import { useState, useEffect } from "react";
 import { ListChecks, Plus, Clock, CheckCircle, AlertTriangle, User, Calendar } from "lucide-react";
 import { useTranslation } from "@/components/LanguageContext";
 
-type Action = { id: string; title: string; assignee: string; due: string; priority: string; category: string; relatedTo: string };
+type Action = { id: string; title: string; assignee: string; due: string; priority: string; category: string; relatedTo: string; status?: string };
 type Column = { status: string; color: string; bg: string; icon: React.ReactNode; items: Action[] };
 
 const actions: Column[] = [
@@ -61,22 +61,40 @@ export default function ActionsPage() {
   const [due, setDue] = useState("May 28, 2025");
   const [relatedTo, setRelatedTo] = useState("DGMS Directive");
 
-  // Load custom actions injected from OCR digitizer or previous sessions
-  useEffect(() => {
+  // Sync custom actions with storage and handle cross-tab updates
+  const syncActions = () => {
     try {
       const stored = localStorage.getItem("mineguard_custom_actions");
-      if (stored) {
-        const customActions: Action[] = JSON.parse(stored);
-        if (customActions.length > 0) {
-          setColumnsData(prev => prev.map(col => {
-            if (col.status === "Due Soon") {
-              return { ...col, items: [...customActions, ...col.items] };
-            }
-            return col;
-          }));
-        }
-      }
+      const customActions: Action[] = stored ? JSON.parse(stored) : [];
+
+      // Deduplicate custom actions by id
+      const uniqueCustomMap = new Map<string, Action>();
+      customActions.forEach(a => {
+        if (a && a.id) uniqueCustomMap.set(a.id, a);
+      });
+      const uniqueCustom = Array.from(uniqueCustomMap.values());
+
+      setColumnsData(
+        actions.map(col => {
+          const colItems = [...col.items];
+          const existingIds = new Set(colItems.map(i => i.id));
+          const colCustom = uniqueCustom.filter(
+            a => (a.status || "Due Soon") === col.status && !existingIds.has(a.id)
+          );
+          return { ...col, items: [...colCustom, ...colItems] };
+        })
+      );
     } catch (e) {}
+  };
+
+  useEffect(() => {
+    syncActions();
+    window.addEventListener("storage", syncActions);
+    window.addEventListener("focus", syncActions);
+    return () => {
+      window.removeEventListener("storage", syncActions);
+      window.removeEventListener("focus", syncActions);
+    };
   }, []);
 
   const handleCreateAction = (e: React.FormEvent) => {
@@ -84,27 +102,24 @@ export default function ActionsPage() {
     if (!title.trim()) return;
 
     const newAction: Action = {
-      id: `ACT-${Math.floor(60 + Math.random() * 940)}`,
+      id: `ACT-${Math.floor(100 + Math.random() * 899)}`,
       title: title.trim(),
       assignee,
       due,
       priority,
       category,
-      relatedTo: relatedTo.trim() || "—"
+      relatedTo: relatedTo.trim() || "—",
+      status
     };
-
-    setColumnsData(prev => prev.map(col => {
-      if (col.status === status) {
-        return { ...col, items: [newAction, ...col.items] };
-      }
-      return col;
-    }));
 
     try {
       const stored = localStorage.getItem("mineguard_custom_actions");
-      const existing = stored ? JSON.parse(stored) : [];
-      localStorage.setItem("mineguard_custom_actions", JSON.stringify([newAction, ...existing]));
+      const existing: Action[] = stored ? JSON.parse(stored) : [];
+      const updated = [newAction, ...existing.filter(item => item.id !== newAction.id)];
+      localStorage.setItem("mineguard_custom_actions", JSON.stringify(updated));
     } catch (err) {}
+
+    syncActions();
 
     setShowAddModal(false);
     setTitle("");
@@ -342,11 +357,11 @@ export default function ActionsPage() {
               <span style={{ marginLeft: "auto", fontSize: 11.5, fontWeight: 800, color: col.color, background: "white", padding: "2px 8px", borderRadius: 20, boxShadow: "var(--shadow-xs)" }}>{col.items.length}</span>
             </div>
             <div style={{ padding: 12, display: "flex", flexDirection: "column", gap: 10 }}>
-              {col.items.map(item => {
+              {col.items.map((item, itemIdx) => {
                 const ps = priorityStyle(item.priority);
                 return (
                   <div
-                    key={item.id}
+                    key={`${item.id}-${itemIdx}`}
                     style={{
                       background: "white",
                       border: "1px solid var(--border)",

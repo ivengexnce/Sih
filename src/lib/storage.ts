@@ -58,6 +58,17 @@ export interface DocumentRecord {
   ocrConfidence?: number;
 }
 
+export interface AttendanceRecord {
+  id: string;
+  workerName: string;
+  workerId: string;
+  shift: string;
+  location: string;
+  timestamp: string;
+  status: "Present" | "Absent" | "Late";
+  scannedBy: string; // Inspector ID
+}
+
 // Local Storage Keys
 const KEYS = {
   AUTH: "mineguard_auth",
@@ -66,6 +77,10 @@ const KEYS = {
   INSPECTIONS: "mineguard_inspections",
   VIOLATIONS: "mineguard_violations",
   DOCUMENTS: "mineguard_documents",
+  ATTENDANCE: "mineguard_attendance",
+  CUSTOM_ACTIONS: "mineguard_custom_actions",
+  SCHEDULED_INSPECTIONS: "mineguard_scheduled_inspections",
+  CUSTOM_VIOLATIONS: "mineguard_custom_violations",
 };
 
 // Default Sample Seed Data for Instant Demo Availability
@@ -411,6 +426,66 @@ class StorageService {
     if (typeof window === "undefined") return [];
     try {
       const data = localStorage.getItem(KEYS.DOCUMENTS);
+      return data ? JSON.parse(data) : [];
+    } catch (e) {
+      return [];
+    }
+  }
+
+  // --- Attendance ---
+  public saveAttendance(record: AttendanceRecord): void {
+    if (typeof window === "undefined") return;
+    const current = this.getAttendance();
+    current.unshift(record);
+    localStorage.setItem(KEYS.ATTENDANCE, JSON.stringify(current));
+  }
+
+  public getAttendance(): AttendanceRecord[] {
+    if (typeof window === "undefined") return [];
+    try {
+      const data = localStorage.getItem(KEYS.ATTENDANCE);
+      if (data) {
+        return JSON.parse(data);
+      }
+      const defaults: AttendanceRecord[] = [
+        { id: "ATT-101", workerName: "Ramesh Singh", workerId: "WRK-8291", shift: "Morning (08:00 - 16:00)", location: "Pit Area A - Gate 2", timestamp: new Date(Date.now() - 3600000).toISOString(), status: "Present", scannedBy: "INS-092" },
+        { id: "ATT-102", workerName: "Sunil Kumar", workerId: "WRK-3024", shift: "Morning (08:00 - 16:00)", location: "Pit Area A - Gate 2", timestamp: new Date(Date.now() - 7200000).toISOString(), status: "Present", scannedBy: "INS-092" },
+        { id: "ATT-103", workerName: "Vikram Das", workerId: "WRK-5102", shift: "Morning (08:00 - 16:00)", location: "Pit Area B - Gate 1", timestamp: new Date(Date.now() - 10800000).toISOString(), status: "Late", scannedBy: "INS-092" },
+        { id: "ATT-104", workerName: "Prakash Mahato", workerId: "WRK-9921", shift: "Morning (08:00 - 16:00)", location: "Underground Level 1 Entry", timestamp: new Date(Date.now() - 14400000).toISOString(), status: "Present", scannedBy: "INS-092" },
+        { id: "ATT-105", workerName: "Anil Murmu", workerId: "WRK-4412", shift: "Morning (08:00 - 16:00)", location: "Crusher Plant Gate", timestamp: new Date(Date.now() - 18000000).toISOString(), status: "Present", scannedBy: "INS-092" },
+      ];
+      localStorage.setItem(KEYS.ATTENDANCE, JSON.stringify(defaults));
+      return defaults;
+    } catch (e) {
+      return [];
+    }
+  }
+
+  public getCustomViolations(): any[] {
+    if (typeof window === "undefined") return [];
+    try {
+      const data = localStorage.getItem(KEYS.CUSTOM_VIOLATIONS);
+      return data ? JSON.parse(data) : [];
+    } catch (e) {
+      return [];
+    }
+  }
+
+  // --- Helpers for Cross-Dashboard Compatibility ---
+  public getCustomActions(): any[] {
+    if (typeof window === "undefined") return [];
+    try {
+      const data = localStorage.getItem(KEYS.CUSTOM_ACTIONS);
+      return data ? JSON.parse(data) : [];
+    } catch (e) {
+      return [];
+    }
+  }
+
+  public getScheduledInspections(): any[] {
+    if (typeof window === "undefined") return [];
+    try {
+      const data = localStorage.getItem(KEYS.SCHEDULED_INSPECTIONS);
       return data ? JSON.parse(data) : [];
     } catch (e) {
       return [];

@@ -111,33 +111,70 @@ export default function InspectionsPage() {
   const [formPriority, setFormPriority] = useState<"High" | "Medium" | "Low">("Medium");
   const [formNotes, setFormNotes] = useState("");
 
-  useEffect(() => {
+  // Sync inspections and upcoming schedules from storage
+  const syncInspections = () => {
     try {
       const mine = storageService.getActiveAllocatedMine();
       const profile = getCollieryProfile(mine);
       setColliery(profile);
 
-      // Load custom scheduled inspections
-      const stored = localStorage.getItem("mineguard_scheduled_inspections");
-      if (stored) {
-        const parsed = JSON.parse(stored);
-        setUpcomingList([...parsed, ...defaultUpcoming]);
-      }
+      // 1. Scheduled
+      const storedSched = localStorage.getItem("mineguard_scheduled_inspections");
+      const schedList = storedSched ? JSON.parse(storedSched) : [];
+      const schedMap = new Map<string, UpcomingInspection>();
+      schedList.forEach((s: any) => schedMap.set(s.id, s));
+      defaultUpcoming.forEach(s => {
+        if (!schedMap.has(s.id || "")) schedMap.set(s.id || "", s);
+      });
+      setUpcomingList(Array.from(schedMap.values()));
 
-      // Default date to tomorrow
-      const tomorrow = new Date();
-      tomorrow.setDate(tomorrow.getDate() + 1);
-      const isoDate = tomorrow.toISOString().split("T")[0];
-      setFormDate(isoDate);
+      // 2. Conducted / Past Inspections
+      const storedConducted = localStorage.getItem("mineguard_inspections");
+      const conductedList = storedConducted ? JSON.parse(storedConducted) : [];
+      const mappedConducted: StatutoryInspection[] = conductedList.map((c: any) => ({
+        id: c.id,
+        area: c.area,
+        inspector: "Field Safety Inspector",
+        date: c.assigned || "Today",
+        time: c.time || "11:45 AM",
+        status: c.status === "Completed" ? "Compliant" : "Partial",
+        severity: c.severity || "Low",
+        findings: c.checklist ? c.checklist.filter((x: any) => !x.ok).length : 0,
+        category: "DGMS On-Site Audit",
+        notes: c.findingsNote
+      }));
 
-      // Fallback check
-      if (typeof window !== "undefined") {
-        const params = new URLSearchParams(window.location.search);
-        if (params.get("schedule") === "true" || params.get("action") === "schedule") {
-          setShowScheduleModal(true);
-        }
-      }
+      const inspMap = new Map<string, StatutoryInspection>();
+      mappedConducted.forEach(ins => inspMap.set(ins.id, ins));
+      defaultInspections.forEach(ins => {
+        if (!inspMap.has(ins.id)) inspMap.set(ins.id, ins);
+      });
+      setInspectionsList(Array.from(inspMap.values()));
     } catch (e) {}
+  };
+
+  useEffect(() => {
+    syncInspections();
+    window.addEventListener("storage", syncInspections);
+    window.addEventListener("focus", syncInspections);
+
+    // Default date to tomorrow
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    const isoDate = tomorrow.toISOString().split("T")[0];
+    setFormDate(isoDate);
+
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get("schedule") === "true" || params.get("action") === "schedule") {
+        setShowScheduleModal(true);
+      }
+    }
+
+    return () => {
+      window.removeEventListener("storage", syncInspections);
+      window.removeEventListener("focus", syncInspections);
+    };
   }, []);
 
   const handleScheduleSubmit = (e: React.FormEvent) => {
@@ -176,8 +213,10 @@ export default function InspectionsPage() {
     try {
       const existingStored = localStorage.getItem("mineguard_scheduled_inspections");
       const parsedStored = existingStored ? JSON.parse(existingStored) : [];
-      localStorage.setItem("mineguard_scheduled_inspections", JSON.stringify([newScheduled, ...parsedStored]));
+      localStorage.setItem("mineguard_scheduled_inspections", JSON.stringify([newScheduled, ...parsedStored.filter((x: any) => x.id !== newScheduled.id)]));
     } catch (err) {}
+
+    syncInspections();
 
     // Reset and close modal
     setShowScheduleModal(false);
@@ -315,12 +354,12 @@ export default function InspectionsPage() {
               </tr>
             </thead>
             <tbody>
-              {filtered.map((ins) => {
+              {filtered.map((ins, insIdx) => {
                 const ss = statusStyle(ins.status);
                 const sv = severityStyle(ins.severity);
                 return (
                   <tr
-                    key={ins.id}
+                    key={`${ins.id}-${insIdx}`}
                     onClick={() => setSelectedItem({ type: "inspection", data: ins })}
                     style={{ borderTop: "1px solid #f3f4f6", cursor: "pointer", transition: "background 0.1s ease" }}
                     onMouseOver={e => (e.currentTarget.style.background = "#f9fafb")}
@@ -378,7 +417,7 @@ export default function InspectionsPage() {
             <div style={{ display: "flex", flexDirection: "column" }}>
               {upcomingList.map((u, i) => (
                 <div
-                  key={u.id || i}
+                  key={`${u.id || 'upcoming'}-${i}`}
                   onClick={() => setSelectedItem({ type: "upcoming", data: u })}
                   style={{
                     display: "flex",

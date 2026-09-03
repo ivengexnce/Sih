@@ -103,6 +103,43 @@ export default function InspectorViolationsPage() {
   const [desc, setDesc] = useState("");
   const [toastMsg, setToastMsg] = useState<string | null>(null);
 
+  // Sync violations from localStorage and static list
+  const syncViolations = () => {
+    try {
+      const stored = localStorage.getItem("mineguard_custom_violations");
+      const customList = stored ? JSON.parse(stored) : [];
+
+      const mappedCustom: Violation[] = customList.map((c: any) => ({
+        id: c.id,
+        type: c.type,
+        area: c.area,
+        date: c.date || "Today",
+        severity: c.severity || "High",
+        status: c.status || "Open",
+        findings: c.desc || c.findings || "Logged violation observation.",
+        recommendedAction: c.recommendedAction || "Investigate root cause and assign remediation task."
+      }));
+
+      const vMap = new Map<string, Violation>();
+      mappedCustom.forEach(v => vMap.set(v.id, v));
+      initialViolations.forEach(v => {
+        if (!vMap.has(v.id)) vMap.set(v.id, v);
+      });
+
+      setViolationsList(Array.from(vMap.values()));
+    } catch (e) {}
+  };
+
+  useEffect(() => {
+    syncViolations();
+    window.addEventListener("storage", syncViolations);
+    window.addEventListener("focus", syncViolations);
+    return () => {
+      window.removeEventListener("storage", syncViolations);
+      window.removeEventListener("focus", syncViolations);
+    };
+  }, []);
+
   const applyTemplate = (t: typeof quickTemplates[0]) => {
     setArea(t.area);
     setType(t.type);
@@ -114,19 +151,35 @@ export default function InspectorViolationsPage() {
     e.preventDefault();
     if (!area || !type || !desc) return;
 
-    const newId = `VIO-1${violationsList.length + 29}`;
+    const newId = `VIO-1${Math.floor(100 + Math.random() * 899)}`;
     const newViolation: Violation = {
       id: newId,
       type,
       area,
-      date: "May 20, 2025",
+      date: new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }),
       severity,
       status: "Open",
       findings: desc,
       recommendedAction: "Investigate root cause and assign remediation task to section engineer.",
     };
 
-    setViolationsList([newViolation, ...violationsList]);
+    try {
+      const stored = localStorage.getItem("mineguard_custom_violations");
+      const existing = stored ? JSON.parse(stored) : [];
+      const managerRecord = {
+        id: newId,
+        type,
+        area,
+        reporter: "Field Safety Inspector",
+        date: newViolation.date,
+        severity,
+        status: "Open",
+        desc: desc.trim()
+      };
+      localStorage.setItem("mineguard_custom_violations", JSON.stringify([managerRecord, ...existing.filter((x: any) => x.id !== newId)]));
+    } catch (err) {}
+
+    syncViolations();
     setToastMsg(`Violation ${newId} logged and dispatched to Mine Manager!`);
     setTimeout(() => setToastMsg(null), 3500);
 
@@ -141,6 +194,18 @@ export default function InspectorViolationsPage() {
     if (selectedViolation && selectedViolation.id === id) {
       setSelectedViolation({ ...selectedViolation, status: newStatus });
     }
+
+    try {
+      const stored = localStorage.getItem("mineguard_custom_violations");
+      if (stored) {
+        const existing = JSON.parse(stored);
+        const idx = existing.findIndex((x: any) => x.id === id);
+        if (idx >= 0) {
+          existing[idx].status = newStatus;
+          localStorage.setItem("mineguard_custom_violations", JSON.stringify(existing));
+        }
+      }
+    } catch (e) {}
   };
 
   const filtered = violationsList.filter(v => {
@@ -416,7 +481,7 @@ export default function InspectorViolationsPage() {
                 const ss = statusStyle(v.status);
                 return (
                   <div
-                    key={v.id}
+                    key={`${v.id}-${i}`}
                     style={{
                       padding: "15px 20px",
                       borderBottom: i < filtered.length - 1 ? "1px solid #f9fafb" : "none",

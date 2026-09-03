@@ -163,6 +163,63 @@ export default function InspectorInspectionsPage() {
   const [modalMode, setModalMode] = useState<"schedule" | "conduct">("schedule");
   const [toastMsg, setToastMsg] = useState<string | null>(null);
 
+  // Sync inspections from storage and static list
+  const syncInspections = () => {
+    try {
+      const storedScheduled = localStorage.getItem("mineguard_scheduled_inspections");
+      const storedConducted = localStorage.getItem("mineguard_inspections");
+
+      const scheduledList = storedScheduled ? JSON.parse(storedScheduled) : [];
+      const conductedList = storedConducted ? JSON.parse(storedConducted) : [];
+
+      const mappedScheduled: Inspection[] = scheduledList.map((p: any) => ({
+        id: p.id || `INSP-${Math.floor(Math.random() * 1000)}`,
+        area: p.area,
+        mine: "Rajpura Coal Mine",
+        assigned: p.date,
+        time: p.time,
+        deadline: p.date,
+        status: p.status || "Scheduled",
+        severity: p.priority || "Medium",
+        shift: p.shift,
+        findingsNote: p.notes,
+      }));
+
+      const mappedConducted: Inspection[] = conductedList.map((c: any) => ({
+        id: c.id,
+        area: c.area,
+        mine: c.mine || "Rajpura Coal Mine",
+        assigned: c.assigned || "Today",
+        time: c.time || "11:45 AM",
+        deadline: c.deadline || "Today",
+        status: c.status || "Completed",
+        severity: c.severity || "Low",
+        shift: c.shift,
+        findingsNote: c.findingsNote,
+        checklist: c.checklist,
+      }));
+
+      const map = new Map<string, Inspection>();
+      [...mappedConducted, ...mappedScheduled, ...initialInspections].forEach(item => {
+        if (!map.has(item.id)) {
+          map.set(item.id, item);
+        }
+      });
+
+      setInspectionsList(Array.from(map.values()));
+    } catch (e) {}
+  };
+
+  useEffect(() => {
+    syncInspections();
+    window.addEventListener("storage", syncInspections);
+    window.addEventListener("focus", syncInspections);
+    return () => {
+      window.removeEventListener("storage", syncInspections);
+      window.removeEventListener("focus", syncInspections);
+    };
+  }, []);
+
   // Form States (Schedule / Conduct)
   const [formArea, setFormArea] = useState("Pit Area – Section A");
   const [formStatus, setFormStatus] = useState<"Completed" | "Pending" | "Scheduled">("Scheduled");
@@ -231,9 +288,28 @@ export default function InspectorInspectionsPage() {
         shift: formShift,
         findingsNote: formNotes.trim() || "Statutory inspection scheduled under DGMS CMR 2017 mandate.",
       };
-      setInspectionsList([newScheduled, ...inspectionsList]);
+
+      try {
+        const stored = localStorage.getItem("mineguard_scheduled_inspections");
+        const existing = stored ? JSON.parse(stored) : [];
+        const managerRecord = {
+          id: newId,
+          area: formArea,
+          inspector: "Field Safety Inspector",
+          date: displayDate,
+          time: formTime,
+          shift: formShift,
+          category: "DGMS CMR 2017 Comprehensive Statutory Audit",
+          priority: formSeverity,
+          notes: formNotes.trim() || "Scheduled by Field Inspector",
+          status: "Scheduled"
+        };
+        localStorage.setItem("mineguard_scheduled_inspections", JSON.stringify([managerRecord, ...existing]));
+      } catch (e) {}
+
+      syncInspections();
       setShowModal(false);
-      setToastMsg(`Statutory Inspection ${newId} scheduled for ${formArea} on ${displayDate}!`);
+      setToastMsg(`Statutory Inspection ${newId} scheduled for ${formArea} on ${displayDate}! Synced with Mine Manager.`);
     } else {
       const newConducted: Inspection = {
         id: newId,
@@ -252,9 +328,16 @@ export default function InspectorInspectionsPage() {
           { item: "Machine Guards & Interlocks", ok: checkGuards },
         ],
       };
-      setInspectionsList([newConducted, ...inspectionsList]);
+
+      try {
+        const stored = localStorage.getItem("mineguard_inspections");
+        const existing = stored ? JSON.parse(stored) : [];
+        localStorage.setItem("mineguard_inspections", JSON.stringify([newConducted, ...existing]));
+      } catch (e) {}
+
+      syncInspections();
       setShowModal(false);
-      setToastMsg(`Inspection ${newId} logged successfully!`);
+      setToastMsg(`Inspection ${newId} logged successfully and synced with Corporate Admin!`);
     }
     setTimeout(() => setToastMsg(null), 3500);
   };
@@ -491,7 +574,7 @@ export default function InspectorInspectionsPage() {
                 const isHighSev = insp.severity === "High";
                 return (
                   <tr
-                    key={insp.id}
+                    key={`${insp.id}-${idx}`}
                     style={{
                       borderBottom: idx < filtered.length - 1 ? "1px solid var(--surface-2)" : "none",
                       transition: "background 0.12s ease",
