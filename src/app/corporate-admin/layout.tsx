@@ -10,6 +10,8 @@ import { usePathname } from "next/navigation";
 import { useState, useEffect } from "react";
 import { useTranslation } from "@/components/LanguageContext";
 import HeaderNavActions from "@/components/HeaderNavActions";
+import HeaderProfileMenu from "@/components/HeaderProfileMenu";
+import HeaderCollierySelector from "@/components/HeaderCollierySelector";
 
 const navSections = [
   {
@@ -217,42 +219,21 @@ export default function CorporateAdminLayout({ children }: { children: React.Rea
           </div>
 
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            {/* Mines pill */}
-            <div style={{
-              display: "flex", alignItems: "center", gap: 7,
-              padding: "7px 13px",
-              border: "1px solid var(--border)", borderRadius: 8,
-              background: "white", cursor: "pointer",
-              transition: "all 0.15s ease", fontSize: 13, fontWeight: 600,
-              color: "var(--text-secondary)",
-            }}>
-              <Globe size={14} color="var(--text-muted)" />
-              {t("filter.all_mines", "All Mines")}
-              <ChevronDown size={13} color="var(--text-faint)" />
-            </div>
+            {/* Interactive Colliery Selector */}
+            <HeaderCollierySelector
+              currentMine="All Mines Portfolio"
+              variant="button"
+            />
 
             <HeaderNavActions />
 
-            {/* Profile pill */}
-            <div style={{
-              display: "flex", alignItems: "center", gap: 8,
-              padding: "5px 12px 5px 6px",
-              border: "1px solid var(--border)", borderRadius: 24,
-              background: "var(--surface-1)", cursor: "pointer",
-            }}>
-              <div style={{
-                width: 30, height: 30, borderRadius: "50%",
-                background: "linear-gradient(135deg, #1a3d28 0%, #2d6a4f 100%)",
-                display: "flex", alignItems: "center", justifyContent: "center",
-              }}>
-                <span style={{ color: "#74c69d", fontSize: 10, fontWeight: 800 }}>CA</span>
-              </div>
-              <div>
-                <p style={{ fontSize: 12, fontWeight: 700, color: "var(--text-primary)", margin: 0, lineHeight: 1.2 }}>Corp. Admin</p>
-                <p style={{ fontSize: 10, color: "var(--text-muted)", margin: 0 }}>Administrator</p>
-              </div>
-              <ChevronDown size={13} color="var(--text-faint)" />
-            </div>
+            {/* Interactive Profile Menu */}
+            <HeaderProfileMenu
+              role="corporate"
+              name="Corp. Admin"
+              subtitle="Administrator"
+              allocatedMine="All Mines Portfolio"
+            />
           </div>
         </header>
 

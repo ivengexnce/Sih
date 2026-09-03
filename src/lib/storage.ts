@@ -266,6 +266,23 @@ class StorageService {
     localStorage.setItem(KEYS.ALLOCATED_MINE, mine);
   }
 
+  public clearSession(): void {
+    if (typeof window === "undefined") return;
+    localStorage.removeItem(KEYS.AUTH);
+  }
+
+  public setAllocatedMine(mine: string): void {
+    this.setActiveAllocatedMine(mine);
+  }
+
+  public getOfficerSession(): any {
+    return this.getCurrentSession();
+  }
+
+  public setOfficerSession(officer: any): void {
+    this.saveCurrentSession(officer);
+  }
+
   public setCurrentSession(officer: OfficerProfile): void {
     this.saveCurrentSession(officer);
   }

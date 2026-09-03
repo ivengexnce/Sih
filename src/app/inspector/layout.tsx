@@ -10,6 +10,8 @@ import { useState, useEffect } from "react";
 import { storageService } from "@/lib/storage";
 import { useTranslation } from "@/components/LanguageContext";
 import HeaderNavActions from "@/components/HeaderNavActions";
+import HeaderProfileMenu from "@/components/HeaderProfileMenu";
+import HeaderCollierySelector from "@/components/HeaderCollierySelector";
 
 const navItems = [
   { icon: LayoutDashboard, key: "nav.dashboard",   defaultLabel: "Dashboard",   href: "/inspector" },
@@ -231,50 +233,22 @@ export default function InspectorLayout({ children }: { children: React.ReactNod
           </div>
 
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            {/* Location chip */}
-            <div style={{
-              display: "flex", alignItems: "center", gap: 6,
-              padding: "6px 12px",
-              background: "#f0fdf4",
-              border: "1px solid #bbf7d0",
-              borderRadius: 20, cursor: "pointer",
-              maxWidth: 220,
-            }}>
-              <MapPin size={13} color="#16a34a" style={{ flexShrink: 0 }} />
-              <span style={{
-                fontSize: 12, fontWeight: 700, color: "#15803d",
-                overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap"
-              }}>
-                {allocatedMine}
-              </span>
-              <div style={{
-                width: 6, height: 6, borderRadius: "50%", background: "#16a34a",
-                flexShrink: 0, animation: "pulseDot 2s infinite"
-              }} />
-            </div>
+            {/* Interactive Colliery Selector */}
+            <HeaderCollierySelector
+              currentMine={allocatedMine}
+              variant="chip"
+              onSelectMine={(mine) => setAllocatedMine(mine)}
+            />
 
             <HeaderNavActions />
 
-            {/* Profile */}
-            <div style={{
-              display: "flex", alignItems: "center", gap: 8,
-              padding: "5px 12px 5px 6px",
-              border: "1px solid var(--border)", borderRadius: 24,
-              background: "var(--surface-1)", cursor: "pointer",
-            }}>
-              <div style={{
-                width: 30, height: 30, borderRadius: "50%",
-                background: "linear-gradient(135deg, #1a3d28 0%, #2d6a4f 100%)",
-                display: "flex", alignItems: "center", justifyContent: "center",
-              }}>
-                <HardHat size={15} color="#52b788" />
-              </div>
-              <div>
-                <p style={{ fontSize: 12, fontWeight: 700, color: "var(--text-primary)", margin: 0, lineHeight: 1.2 }}>{officerName}</p>
-                <p style={{ fontSize: 10, color: "var(--text-muted)", margin: 0 }}>Safety Inspector · {officerId}</p>
-              </div>
-              <ChevronDown size={13} color="var(--text-faint)" />
-            </div>
+            {/* Interactive Profile Menu */}
+            <HeaderProfileMenu
+              role="inspector"
+              name={officerName}
+              subtitle={`Safety Inspector · ${officerId}`}
+              allocatedMine={allocatedMine}
+            />
           </div>
         </header>
 

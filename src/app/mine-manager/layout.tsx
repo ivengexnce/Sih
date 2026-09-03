@@ -10,6 +10,8 @@ import { usePathname } from "next/navigation";
 import { useState, useEffect } from "react";
 import { storageService } from "@/lib/storage";
 import HeaderNavActions from "@/components/HeaderNavActions";
+import HeaderProfileMenu from "@/components/HeaderProfileMenu";
+import HeaderCollierySelector from "@/components/HeaderCollierySelector";
 import { useTranslation } from "@/components/LanguageContext";
 
 const navSections = [
@@ -240,21 +242,22 @@ export default function MineManagerLayout({ children }: { children: React.ReactN
           </div>
 
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            {/* Mine selector */}
-            <div style={{
-              display: "flex", alignItems: "center", gap: 7,
-              padding: "7px 12px",
-              border: "1px solid var(--border)", borderRadius: 8,
-              background: "white", cursor: "pointer",
-              fontSize: 12.5, fontWeight: 600, color: "var(--text-secondary)",
-              maxWidth: 220, overflow: "hidden",
-            }}>
-              <Mountain size={13} color="var(--text-muted)" style={{ flexShrink: 0 }} />
-              <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{allocatedMine}</span>
-              <ChevronDown size={13} color="var(--text-faint)" style={{ flexShrink: 0 }} />
-            </div>
+            {/* Interactive Colliery Selector */}
+            <HeaderCollierySelector
+              currentMine={allocatedMine}
+              variant="button"
+              onSelectMine={(mine) => setAllocatedMine(mine)}
+            />
 
             <HeaderNavActions />
+
+            {/* Interactive Profile Menu */}
+            <HeaderProfileMenu
+              role="manager"
+              name={managerName}
+              subtitle="Mine Manager"
+              allocatedMine={allocatedMine}
+            />
 
             {/* Date range */}
             <div style={{
