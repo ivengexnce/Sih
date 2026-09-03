@@ -156,7 +156,7 @@ function ScheduleParamWatcher({ onTrigger }: { onTrigger: () => void }) {
 }
 
 export default function InspectorInspectionsPage() {
-  const [inspectionsList, setInspectionsList] = useState<Inspection[]>(initialInspections);
+  const [inspectionsList, setInspectionsList] = useState<Inspection[]>([]);
   const [query, setQuery] = useState("");
   const [activeTab, setActiveTab] = useState<string>("All");
   const [selectedInspection, setSelectedInspection] = useState<Inspection | null>(null);
@@ -183,60 +183,56 @@ export default function InspectorInspectionsPage() {
     setFormDate(tomorrow.toISOString().split("T")[0]);
 
     const unsubscribe = storageService.subscribeToInspections((liveDocs) => {
-      if (liveDocs && liveDocs.length > 0) {
-        const mapped: Inspection[] = liveDocs.map((d) => {
-          const dateStr = d.createdAt || d.timestamp || d.submittedAt;
-          let formattedDate = "Today";
-          let formattedTime = "10:00 AM";
-          if (dateStr) {
-            try {
-              const dt = new Date(dateStr);
-              if (!isNaN(dt.getTime())) {
-                formattedDate = dt.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
-                formattedTime = dt.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" });
-              }
-            } catch {}
-          }
+      const mapped: Inspection[] = (liveDocs || []).map((d) => {
+        const dateStr = d.createdAt || d.timestamp || d.submittedAt;
+        let formattedDate = "Today";
+        let formattedTime = "10:00 AM";
+        if (dateStr) {
+          try {
+            const dt = new Date(dateStr);
+            if (!isNaN(dt.getTime())) {
+              formattedDate = dt.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+              formattedTime = dt.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" });
+            }
+          } catch {}
+        }
 
-          const rawStatus = (d.status || d.escalationStatus || "").toUpperCase();
-          let status: "Completed" | "Scheduled" | "Pending" | "Overdue" = "Completed";
-          if (rawStatus.includes("SCHEDULE")) {
-            status = "Scheduled";
-          } else if (rawStatus.includes("OVERDUE")) {
-            status = "Overdue";
-          } else if (rawStatus.includes("PENDING") || rawStatus.includes("REVIEW")) {
-            status = "Pending";
-          } else {
-            status = "Completed";
-          }
+        const rawStatus = (d.status || d.escalationStatus || "").toUpperCase();
+        let status: "Completed" | "Scheduled" | "Pending" | "Overdue" = "Completed";
+        if (rawStatus.includes("SCHEDULE")) {
+          status = "Scheduled";
+        } else if (rawStatus.includes("OVERDUE")) {
+          status = "Overdue";
+        } else if (rawStatus.includes("PENDING") || rawStatus.includes("REVIEW")) {
+          status = "Pending";
+        } else {
+          status = "Completed";
+        }
 
-          const sevRaw = (d.severity || d.observation?.severity || "Low").toUpperCase();
-          let severity: "High" | "Medium" | "Low" | "—" = "Low";
-          if (sevRaw === "HIGH" || sevRaw === "CRITICAL") severity = "High";
-          else if (sevRaw === "MEDIUM") severity = "Medium";
+        const sevRaw = (d.severity || d.observation?.severity || "Low").toUpperCase();
+        let severity: "High" | "Medium" | "Low" | "—" = "Low";
+        if (sevRaw === "HIGH" || sevRaw === "CRITICAL") severity = "High";
+        else if (sevRaw === "MEDIUM") severity = "Medium";
 
-          return {
-            id: d.inspectionId || d.id || `INSP-${Math.floor(100 + Math.random() * 900)}`,
-            area: d.area || d.setup?.area || d.section || "Pit Area",
-            mine: d.mineName || d.mine || d.setup?.mine || "Colliery Sector",
-            assigned: d.date || formattedDate,
-            time: d.time || formattedTime,
-            deadline: d.deadline || formattedDate,
-            status,
-            severity,
-            findingsNote: d.description || d.observation?.description || d.notes || "Recorded via MineGuard App",
-            checklist: d.checklist || [
-              { item: "DGMS Statutory compliance check", ok: status === "Completed" },
-              { item: "Field evidence verification", ok: true },
-            ],
-            shift: d.shift || d.setup?.shift || "Morning Shift",
-          };
-        });
+        return {
+          id: d.inspectionId || d.id || `INSP-${Math.floor(100 + Math.random() * 900)}`,
+          area: d.area || d.setup?.area || d.section || "Pit Area",
+          mine: d.mineName || d.mine || d.setup?.mine || "Colliery Sector",
+          assigned: d.date || formattedDate,
+          time: d.time || formattedTime,
+          deadline: d.deadline || formattedDate,
+          status,
+          severity,
+          findingsNote: d.description || d.observation?.description || d.notes || "Recorded via MineGuard App",
+          checklist: d.checklist || [
+            { item: "DGMS Statutory compliance check", ok: status === "Completed" },
+            { item: "Field evidence verification", ok: true },
+          ],
+          shift: d.shift || d.setup?.shift || "Morning Shift",
+        };
+      });
 
-        const liveIds = new Set(mapped.map((m) => m.id));
-        const remainingInitials = initialInspections.filter((init) => !liveIds.has(init.id));
-        setInspectionsList([...mapped, ...remainingInitials]);
-      }
+      setInspectionsList(mapped);
     });
 
     return () => {

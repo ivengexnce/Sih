@@ -212,88 +212,6 @@ export function validateInspection(draft: InspectionDraft): InspectionValidation
   };
 }
 
-// ─── Seed / Initial Mock Inspections ─────────────────────────────────────────
-
-const SEED_INSPECTIONS: CompletedInspection[] = [
-  {
-    inspectionId: 'INS-10291',
-    timestamp: '09:15 (Sep 1, 2026)',
-    setup: {
-      mine: 'BCCL Moonidih Deep Underground Colliery',
-      mineId: 'BCCL-JHR-01',
-      area: 'Underground Longwall Section A',
-      level: '-280m',
-      panel: 'ML-04',
-      inspectionType: 'Safety',
-    },
-    observation: {
-      category: 'Worker Safety',
-      description: 'Worker observed without PPE near excavation site.',
-      severity: 'High',
-    },
-    evidence: [{ id: 'seed-1', label: 'Site photo', time: '09:15' }],
-    location: {
-      source: 'Mine Zone',
-      zone: 'Underground Longwall Section A',
-      level: '-280m',
-      panel: 'ML-04',
-      confidence: 'High',
-    },
-    status: 'Pending Sync',
-  },
-  {
-    inspectionId: 'INS-10290',
-    timestamp: '08:45 (Sep 1, 2026)',
-    setup: {
-      mine: 'SECL Gevra Mega Opencast Project',
-      mineId: 'SECL-KRB-02',
-      area: 'Opencast Pit 2 — Highwall Face',
-      level: '+140m RL',
-      panel: 'HW-08',
-      inspectionType: 'Equipment',
-    },
-    observation: {
-      category: 'Equipment',
-      description: 'Hydraulic conveyor belt showing signs of wear.',
-      severity: 'Medium',
-    },
-    evidence: [{ id: 'seed-2', label: 'Conveyor belt photo', time: '08:45' }],
-    location: {
-      source: 'Mine Zone',
-      zone: 'Opencast Pit 2 — Highwall Face',
-      level: '+140m RL',
-      panel: 'HW-08',
-      confidence: 'High',
-    },
-    status: 'Synced',
-  },
-  {
-    inspectionId: 'INS-10289',
-    timestamp: '07:30 (Sep 1, 2026)',
-    setup: {
-      mine: 'NCL Jayant Opencast Colliery',
-      mineId: 'NCL-SNG-03',
-      area: 'Dragline Bench 3',
-      level: '+180m RL',
-      panel: 'DL-02',
-      inspectionType: 'Environment',
-    },
-    observation: {
-      category: 'Environment',
-      description: 'Dust suppression system inactive in Surface Area 2.',
-      severity: 'Low',
-    },
-    evidence: [{ id: 'seed-3', label: 'Dust monitor photo', time: '07:30' }],
-    location: {
-      source: 'Mine Zone',
-      zone: 'Dragline Bench 3',
-      level: '+180m RL',
-      panel: 'DL-02',
-      confidence: 'High',
-    },
-    status: 'Synced',
-  },
-];
 
 // ─── Draft Factory ────────────────────────────────────────────────────────────
 
@@ -356,8 +274,7 @@ const InspectionContext = createContext<InspectionContextValue | null>(null);
 export function InspectionProvider({ children }: { children: React.ReactNode }) {
   const [currentMine, setCurrentMineState] = useState<MineInfo>(DEFAULT_MINE);
   const [draft, setDraft] = useState<InspectionDraft>(() => makeDefaultDraft(DEFAULT_MINE));
-  const [completedInspections, setCompletedInspections] =
-    useState<CompletedInspection[]>(SEED_INSPECTIONS);
+  const [completedInspections, setCompletedInspections] = useState<CompletedInspection[]>([]);
 
   // Load active mine from AsyncStorage on mount
   useEffect(() => {

@@ -112,111 +112,40 @@ export async function loginUser(
   const cleanEmail = email.trim().toLowerCase();
 
   try {
-    // 1. Attempt standard Firebase Sign-In
-    let user: User | null = null;
-    let authError: any = null;
+    // Attempt real Firebase Authentication
+    const userCredential = await signInWithEmailAndPassword(auth, cleanEmail, password);
+    const user = userCredential.user;
 
-    try {
-      const userCredential = await signInWithEmailAndPassword(auth, cleanEmail, password);
-      user = userCredential.user;
-    } catch (err: any) {
-      authError = err;
-    }
+    // Fetch full inspector profile & allocated mine from Firestore
+    const profile = await fetchOrEnsureProfile(user);
+    const mine = resolveMineInfo(profile.allocatedMine || profile.mineName);
 
-    // 2. If user exists or fallback is triggered
-    if (user) {
-      // Fetch full inspector profile & allocated mine from Firestore
-      const profile = await fetchOrEnsureProfile(user);
-      const mine = resolveMineInfo(profile.allocatedMine || profile.mineName);
+    // Cache locally for offline session resilience
+    await saveActiveMineLocally(mine);
+    await saveUserProfileLocally(profile);
 
-      // Save locally for offline access
-      await saveActiveMineLocally(mine);
-      await saveUserProfileLocally(profile);
-
-      return { success: true, user, profile, mine };
-    }
-
-    // If password failed specifically on Firebase
-    if (authError?.code === 'auth/wrong-password' || authError?.code === 'auth/invalid-credential') {
-      // Check if it's demo password for demo inspector
-      if (
-        (cleanEmail === 'inspector@dgms.gov.in' || cleanEmail === 'smith@dgms.gov.in') &&
-        (password === 'inspector123' || password === 'mineguard' || password === 'safety2024')
-      ) {
-        const demoProfile: UserProfile = {
-          uid: 'demo-inspector-smith',
-          email: cleanEmail,
-          name: 'Inspector Alex Smith',
-          role: 'inspector',
-          officialId: 'DGMS-INSP-4011',
-          phone: '+91 87654 32109',
-          designation: 'Statutory Safety Inspector',
-          allocatedMine: 'SECL Gevra Mega Opencast',
-          mineId: DEFAULT_MINE.id,
-          mineName: DEFAULT_MINE.name,
-          subsidiary: DEFAULT_MINE.subsidiary,
-          state: DEFAULT_MINE.state,
-          mineType: DEFAULT_MINE.type,
-          lastLoginAt: new Date().toISOString(),
-        };
-        await saveActiveMineLocally(DEFAULT_MINE);
-        await saveUserProfileLocally(demoProfile);
-        return {
-          success: true,
-          user: { email: cleanEmail, uid: 'demo-inspector-smith' },
-          profile: demoProfile,
-          mine: DEFAULT_MINE,
-        };
-      }
-
-      return {
-        success: false,
-        error: 'Incorrect email or password. Please verify your credentials.',
-      };
-    }
-
-    // 3. Fallback for demo or offline mode
-    if (isDemoFallbackEnabled) {
-      console.log('Using offline/demo fallback login for:', cleanEmail);
-      const fallbackMine = DEFAULT_MINE;
-      const fallbackProfile: UserProfile = {
-        uid: `inspector-${cleanEmail.replace(/[^a-zA-Z0-9]/g, '_')}`,
-        email: cleanEmail,
-        name: cleanEmail.includes('smith')
-          ? 'Inspector Alex Smith'
-          : cleanEmail.split('@')[0]?.replace(/[._]/g, ' ').toUpperCase() || 'Field Inspector',
-        role: 'inspector',
-        officialId: 'DGMS-INSP-4011',
-        phone: '+91 87654 32109',
-        designation: 'Statutory Mining Compliance Inspector',
-        allocatedMine: fallbackMine.name,
-        mineId: fallbackMine.id,
-        mineName: fallbackMine.name,
-        subsidiary: fallbackMine.subsidiary,
-        state: fallbackMine.state,
-        mineType: fallbackMine.type,
-        lastLoginAt: new Date().toISOString(),
-      };
-
-      await saveActiveMineLocally(fallbackMine);
-      await saveUserProfileLocally(fallbackProfile);
-
-      return {
-        success: true,
-        user: { email: cleanEmail, uid: fallbackProfile.uid },
-        profile: fallbackProfile,
-        mine: fallbackMine,
-      };
-    }
-
-    return {
-      success: false,
-      error: authError?.message || 'Authentication failed. Please check your credentials.',
-    };
+    return { success: true, user, profile, mine };
   } catch (error: any) {
+    console.warn('[Firebase Auth] Login error:', error?.code, error?.message);
+    
+    let friendlyError = 'Authentication failed. Please verify your credentials.';
+    if (error?.code === 'auth/user-not-found' || error?.code === 'auth/invalid-credential') {
+      friendlyError = 'Invalid email or password. Please check your credentials in Firebase.';
+    } else if (error?.code === 'auth/wrong-password') {
+      friendlyError = 'Incorrect password. Please try again.';
+    } else if (error?.code === 'auth/invalid-email') {
+      friendlyError = 'Please enter a valid official email address.';
+    } else if (error?.code === 'auth/network-request-failed') {
+      friendlyError = 'Network error. Please check your internet connection.';
+    } else if (error?.code === 'auth/too-many-requests') {
+      friendlyError = 'Too many failed login attempts. Please try again later.';
+    } else if (error?.message) {
+      friendlyError = error.message;
+    }
+
     return {
       success: false,
-      error: error?.message || 'Authentication failed',
+      error: friendlyError,
     };
   }
 }
