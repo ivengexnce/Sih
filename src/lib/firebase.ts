@@ -17,13 +17,13 @@ export interface FirebaseConfig {
 }
 
 export const firebaseConfig: FirebaseConfig = {
-  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY || "AIzaSyBqIycMpAUhAL0I_hqZPGajAWmwfc8oUI4",
-  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN || "mineguard-1f956.firebaseapp.com",
-  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || "mineguard-1f956",
-  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET || "mineguard-1f956.firebasestorage.app",
-  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID || "651191051109",
-  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID || "1:651191051109:web:bd806d57dee713c594378c",
-  measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID || "G-4EHCLHFHFM",
+  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY || "AIzaSyC0lhfmYG3v7suyJ72ENDv2mPinMLIGbRE",
+  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN || "mineguard-4fde8.firebaseapp.com",
+  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || "mineguard-4fde8",
+  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET || "mineguard-4fde8.firebasestorage.app",
+  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID || "155316557217",
+  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID || "1:155316557217:web:9f6b1aecc3a376987d27e0",
+  measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID || "G-7RWJXVN3LM",
 };
 
 export const isFirebaseConfigured = (): boolean => {

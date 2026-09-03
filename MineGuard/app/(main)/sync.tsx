@@ -7,6 +7,7 @@ import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useInspection } from '@/context/InspectionContext';
+import { firebaseConfig } from '@/lib/firebase';
 
 export default function SyncScreen() {
   const colorScheme = useColorScheme() ?? 'light';
@@ -60,7 +61,7 @@ export default function SyncScreen() {
               <ThemedText style={styles.cardTitle}>Database: Connected (Firebase Firestore)</ThemedText>
             </View>
             <ThemedText style={styles.cardDetail}>
-              Connected to project mineguard-1f956. Cloud synchronization active.
+              Connected to project {firebaseConfig.projectId}. Cloud synchronization active.
             </ThemedText>
           </View>
 
