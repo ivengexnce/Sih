@@ -1,0 +1,20 @@
+# Ignore heavy Python AI/ML backend and mobile directories during Next.js Vercel build
+api/
+aiml/
+backend/
+MineGuard/
+requirements.txt
+requirements*.txt
+*.py
+.venv
+venv/
+__pycache__/
+*.pt
+*.onnx
+*.weights
+*.csv
+compare.docx
+compare.md
+implemented features.md
+requirement_readme.md
+issues.txt
