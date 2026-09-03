@@ -1479,7 +1479,7 @@ export default function Login() {
 
           {/* Language Switcher Bar */}
           <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 16 }}>
-            <HeaderNavActions />
+            <HeaderNavActions hideNotifications />
           </div>
 
           {isVerifying ? (

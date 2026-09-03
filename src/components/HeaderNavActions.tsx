@@ -65,7 +65,7 @@ const INITIAL_NOTIFICATIONS: NotificationItem[] = [
   }
 ];
 
-export default function HeaderNavActions() {
+export default function HeaderNavActions({ hideNotifications = false }: { hideNotifications?: boolean } = {}) {
   const { currentLang, setLanguage, t, translateText } = useTranslation();
   const [notifications, setNotifications] = useState<NotificationItem[]>(INITIAL_NOTIFICATIONS);
   const [notifOpen, setNotifOpen] = useState(false);
@@ -190,7 +190,8 @@ export default function HeaderNavActions() {
       )}
 
       {/* ── NOTIFICATION BELL ── */}
-      <div style={{ position: "relative" }} ref={notifRef}>
+      {!hideNotifications && (
+        <div style={{ position: "relative" }} ref={notifRef}>
         <button
           type="button"
           onClick={() => { setNotifOpen(o => !o); setLangOpen(false); }}
@@ -455,6 +456,7 @@ export default function HeaderNavActions() {
           </div>
         )}
       </div>
+      )}
 
       {/* ── AI TRANSLATION STATUS PILL ── */}
       {currentLang !== "en" && (
