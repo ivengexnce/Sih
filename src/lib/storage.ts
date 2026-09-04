@@ -615,14 +615,31 @@ class StorageService {
             callback(items);
           }
         },
-        (err) => {
-          console.warn("[Firebase] Real-time inspections subscription notice:", err);
-        }
       );
     } catch (e) {
       console.warn("[Firebase] Subscription init error:", e);
       return () => {};
     }
+  }
+
+  /**
+   * Update inspection status in Cloud Firestore / Storage
+   */
+  public async updateInspectionStatus(
+    inspectionId: string,
+    newStatus: "Completed" | "Pending" | "Scheduled" | "Overdue"
+  ): Promise<boolean> {
+    try {
+      if (db) {
+        const docRef = doc(db, "inspections", inspectionId);
+        await setDoc(docRef, { status: newStatus, updatedAt: new Date().toISOString() }, { merge: true });
+        console.log(`[Storage] Updated inspection ${inspectionId} status to ${newStatus} in Firestore`);
+        return true;
+      }
+    } catch (e) {
+      console.warn("[Storage] Failed to update inspection status in Firestore:", e);
+    }
+    return false;
   }
 }
 

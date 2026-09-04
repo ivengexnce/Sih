@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import {
   ClipboardCheck, Plus, Search, CheckCircle, Clock, AlertCircle,
-  Calendar, MapPin, ChevronRight, X, ShieldAlert, CheckSquare,
+  Calendar, MapPin, ChevronRight, ChevronDown, X, ShieldAlert, CheckSquare,
   FileText, Download, Printer, Filter, AlertTriangle, User,
   Sparkles, CheckCircle2, ArrowRight
 } from "lucide-react";
@@ -262,6 +262,20 @@ export default function InspectorInspectionsPage() {
     );
     return matchesTab && matchesSearch;
   });
+
+  const handleStatusChange = useCallback(async (inspectionId: string, newStatus: "Completed" | "Pending" | "Scheduled" | "Overdue") => {
+    setInspectionsList((prev) =>
+      prev.map((item) => (item.id === inspectionId ? { ...item, status: newStatus } : item))
+    );
+
+    if (selectedInspection && selectedInspection.id === inspectionId) {
+      setSelectedInspection((prev) => (prev ? { ...prev, status: newStatus } : null));
+    }
+
+    await storageService.updateInspectionStatus(inspectionId, newStatus);
+    setToastMsg(`Inspection ${inspectionId} status updated to ${newStatus}!`);
+    setTimeout(() => setToastMsg(null), 3500);
+  }, [selectedInspection]);
 
   const handleFormSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -584,20 +598,36 @@ export default function InspectorInspectionsPage() {
                       {insp.time} {insp.shift ? `· ${insp.shift.split(" ")[0]}` : ""}
                     </td>
                     <td style={{ padding: "14px 14px" }}>
-                      <span style={{
-                        display: "inline-flex",
-                        alignItems: "center",
-                        gap: 5,
-                        padding: "3px 10px",
-                        borderRadius: 20,
-                        fontSize: 11.5,
-                        fontWeight: 700,
-                        background: stat.bg,
-                        color: stat.color,
-                      }}>
-                        {stat.icon}
-                        {insp.status}
-                      </span>
+                      <div
+                        onClick={e => e.stopPropagation()}
+                        style={{ position: "relative", display: "inline-flex", alignItems: "center" }}
+                      >
+                        <select
+                          value={insp.status}
+                          onChange={(e) => handleStatusChange(insp.id, e.target.value as any)}
+                          style={{
+                            appearance: "none",
+                            WebkitAppearance: "none",
+                            padding: "4px 24px 4px 10px",
+                            borderRadius: 20,
+                            fontSize: 11.5,
+                            fontWeight: 700,
+                            background: stat.bg,
+                            color: stat.color,
+                            border: `1px solid ${stat.color}40`,
+                            cursor: "pointer",
+                            outline: "none",
+                            boxShadow: "0 1px 2px rgba(0,0,0,0.05)",
+                            transition: "all 0.15s ease",
+                          }}
+                        >
+                          <option value="Pending" style={{ background: "#white", color: "#111827" }}>⏱ Pending</option>
+                          <option value="Completed" style={{ background: "#white", color: "#111827" }}>✓ Completed</option>
+                          <option value="Scheduled" style={{ background: "#white", color: "#111827" }}>📅 Scheduled</option>
+                          <option value="Overdue" style={{ background: "#white", color: "#111827" }}>⚠️ Overdue</option>
+                        </select>
+                        <ChevronDown size={12} color={stat.color} style={{ position: "absolute", right: 8, pointerEvents: "none" }} />
+                      </div>
                     </td>
                     <td style={{ padding: "14px 14px" }}>
                       {insp.severity !== "—" ? (
@@ -1066,12 +1096,28 @@ export default function InspectorInspectionsPage() {
               </div>
 
               <div style={{ display: "flex", gap: 10 }}>
+                {selectedInspection.status !== "Completed" && (
+                  <button
+                    onClick={() => handleStatusChange(selectedInspection.id, "Completed")}
+                    style={{
+                      flex: 1, padding: "10px",
+                      background: "#16a34a", color: "white",
+                      border: "none", borderRadius: 8, fontSize: 13, fontWeight: 700,
+                      cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
+                      boxShadow: "0 4px 12px rgba(22,163,74,0.25)",
+                    }}
+                  >
+                    <CheckCircle2 size={15} /> Mark as Completed
+                  </button>
+                )}
                 <button
                   onClick={() => setSelectedInspection(null)}
                   style={{
                     flex: 1, padding: "10px",
-                    background: "#2d6a4f", color: "white",
-                    border: "none", borderRadius: 8, fontSize: 13, fontWeight: 700,
+                    background: selectedInspection.status === "Completed" ? "#2d6a4f" : "var(--surface-2)",
+                    color: selectedInspection.status === "Completed" ? "white" : "var(--text-secondary)",
+                    border: selectedInspection.status === "Completed" ? "none" : "1px solid var(--border)",
+                    borderRadius: 8, fontSize: 13, fontWeight: 700,
                     cursor: "pointer"
                   }}
                 >
