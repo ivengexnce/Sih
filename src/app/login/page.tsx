@@ -1033,18 +1033,23 @@ export default function Login() {
 
   const handleRoleSelect = (newRole: "corporate" | "manager" | "inspector") => {
     setRole(newRole);
-    if (newRole === "corporate") {
-      setEmail("director@coalindia.in");
-      setPhone("+91 98111 20490");
-      setSigninPhone("9811120490");
-    } else if (newRole === "manager") {
-      setEmail("manager@secl.gov.in");
-      setPhone("+91 98765 43210");
-      setSigninPhone("9876543210");
-    } else {
-      setEmail("inspector@dgms.gov.in");
-      setPhone("+91 87654 32109");
-      setSigninPhone("8765432109");
+    if (mode === "signin") {
+      const demoEmails = ["director@coalindia.in", "manager@secl.gov.in", "inspector@dgms.gov.in", ""];
+      if (demoEmails.includes(email.trim())) {
+        if (newRole === "corporate") {
+          setEmail("director@coalindia.in");
+          setPhone("+91 98111 20490");
+          setSigninPhone("9811120490");
+        } else if (newRole === "manager") {
+          setEmail("manager@secl.gov.in");
+          setPhone("+91 98765 43210");
+          setSigninPhone("9876543210");
+        } else {
+          setEmail("inspector@dgms.gov.in");
+          setPhone("+91 87654 32109");
+          setSigninPhone("8765432109");
+        }
+      }
     }
   };
 
@@ -1060,7 +1065,7 @@ export default function Login() {
     : undefined;
 
   /* ── form submit → triggers 2FA ONLY IF PASSWORD IS VALID ── */
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg("");
 
@@ -1092,82 +1097,92 @@ export default function Login() {
         setErrorMsg("Security protocol: Registration password must be at least 6 characters long.");
         return;
       }
+
+      setLoading(true);
+
+      const targetMine = role === "corporate" ? "All CIL Subsidiaries (National Scope)" : mine;
+      const targetRoute = role === "corporate" ? "/corporate-admin" : role === "inspector" ? "/inspector" : "/mine-manager";
+      const verifiedPhone = phoneValidation.cleanNumber!;
+
+      const officerSession: OfficerProfile = {
+        name: fullName.trim(),
+        email: signupEmail.trim(),
+        phone: verifiedPhone,
+        password: signupPass,
+        role,
+        securityRole: role === "corporate" ? "Corporate Safety Directorate" : role === "manager" ? "First Class Colliery Manager" : "Statutory Safety Inspector",
+        allocatedMine: targetMine,
+        designation: role === "corporate" ? "Director (Technical/Safety)" : role === "manager" ? "First Class Mine Manager" : "Safety Inspector",
+        officialId: authId.trim(),
+        registeredAt: new Date().toISOString(),
+      };
+
+      // Generate statutory 6-digit OTP
+      const code = Math.floor(100000 + Math.random() * 900000).toString();
+      setGeneratedOtp(code);
+      setOtpCode("");
+      setCountdown(45);
+      setPendingSession({ officerSession, targetRoute, targetMine });
+
+      setTimeout(() => {
+        setLoading(false);
+        setIsVerifying(true);
+      }, 450);
+      return;
     }
 
-    // 2. SIGNIN PASSWORD PROTOCOL (ONLY PROCEED TO 2FA IF PASSWORD IS CORRECT)
+    // 2. SIGNIN PASSWORD PROTOCOL (AUTHENTICATES WITH FIREBASE / FIRESTORE & LOCAL FALLBACK)
     if (mode === "signin") {
+      if (!email || !email.trim()) {
+        setErrorMsg("Please enter your official email or registered mobile number.");
+        return;
+      }
       if (!password || !password.trim()) {
         setErrorMsg("Password is required. Please enter your password to proceed.");
         return;
       }
 
-      const inputQuery = (email || "").trim().toLowerCase();
-      const queryDigits = inputQuery.replace(/^(\+91|91)/, "").replace(/\D/g, "");
+      setLoading(true);
 
-      // Look up existing registered accounts
-      const officers = storageService.getAllOfficers();
-      const matched = officers.find(o => {
-        const oEmail = (o.email || "").trim().toLowerCase();
-        const oPhoneDigits = (o.phone || "").replace(/^(\+91|91)/, "").replace(/\D/g, "");
-        return oEmail === inputQuery || (queryDigits.length === 10 && oPhoneDigits === queryDigits);
-      });
+      try {
+        const authRes = await storageService.authenticateOfficer(email, password, role);
 
-      // Default demo role passwords & standard fallbacks
-      const validDemoPasswords: Record<string, string[]> = {
-        corporate: ["director123", "admin123", "cil2024", "mineguard"],
-        manager: ["manager123", "gevra123", "secl2024", "mineguard"],
-        inspector: ["inspector123", "dgms123", "safety2024", "mineguard"],
-      };
+        if (!authRes.success || !authRes.officer) {
+          setErrorMsg(authRes.error || `Incorrect credentials for ${roleConf.find(r => r.id === role)?.label}.`);
+          setLoading(false);
+          return;
+        }
 
-      const acceptedPasswords = [
-        ...(validDemoPasswords[role] || []),
-        matched?.password,
-      ].filter(Boolean) as string[];
+        const officerSession = authRes.officer;
+        const targetRoute = authRes.targetRoute || (officerSession.role === "corporate" ? "/corporate-admin" : officerSession.role === "inspector" ? "/inspector" : "/mine-manager");
+        const targetMine = officerSession.allocatedMine || (officerSession.role === "corporate" ? "All CIL Subsidiaries (National Scope)" : mine);
 
-      const isPasswordCorrect = acceptedPasswords.includes(password.trim());
+        // Sync role state with detected role
+        if (officerSession.role === "corporate" || (officerSession.role as string) === "corporate_admin" || (officerSession.role as string) === "admin") {
+          setRole("corporate");
+        } else if (officerSession.role === "inspector") {
+          setRole("inspector");
+        } else {
+          setRole("manager");
+        }
 
-      if (!isPasswordCorrect) {
-        setErrorMsg(
-          `Incorrect password for ${roleConf.find(r => r.id === role)?.label}. Demo password is: ${role}123 (or your registered password).`
-        );
-        return; // STRICT BLOCK: DOES NOT PROCEED TO 2FA!
+        // Generate statutory 6-digit OTP
+        const code = Math.floor(100000 + Math.random() * 900000).toString();
+        setGeneratedOtp(code);
+        setOtpCode("");
+        setCountdown(45);
+        setPendingSession({ officerSession, targetRoute, targetMine });
+
+        setTimeout(() => {
+          setLoading(false);
+          setIsVerifying(true);
+        }, 450);
+      } catch (err: any) {
+        console.error("Login verification error:", err);
+        setErrorMsg(err?.message || "Failed to authenticate. Please check your credentials.");
+        setLoading(false);
       }
     }
-
-    // ONLY REACHED IF PASSWORD & REGISTRATION PROTOCOLS ARE 100% VALID
-    setLoading(true);
-
-    const targetMine = role === "corporate" ? "All CIL Subsidiaries (National Scope)" : mine;
-    const targetRoute = role === "corporate" ? "/corporate-admin" : role === "inspector" ? "/inspector" : "/mine-manager";
-
-    const verifiedPhone = mode === "signup"
-      ? validateIndianMobile(signupPhone).cleanNumber!
-      : (phone || (role === "corporate" ? "+91 98111 20490" : role === "manager" ? "+91 98765 43210" : "+91 87654 32109"));
-
-    const officerSession: OfficerProfile = {
-      name: mode === "signup" ? fullName.trim() : (role === "corporate" ? "Corporate Director" : role === "manager" ? "Er. Rajesh Sharma" : "Inspector A. Smith"),
-      email: mode === "signup" ? signupEmail.trim() : (email || (role === "corporate" ? "director@coalindia.in" : role === "manager" ? "manager@secl.gov.in" : "inspector@dgms.gov.in")),
-      phone: verifiedPhone,
-      password: mode === "signup" ? signupPass : password,
-      role,
-      securityRole: role === "corporate" ? "Corporate Safety Directorate" : role === "manager" ? "First Class Colliery Manager" : "Statutory Safety Inspector",
-      allocatedMine: targetMine,
-      designation: role === "corporate" ? "Director (Technical/Safety)" : role === "manager" ? "First Class Mine Manager" : "Safety Inspector",
-      officialId: authId || (role === "corporate" ? "CIL-DIR-9021" : role === "manager" ? "DGMS-FCC-7721" : "DGMS-INSP-4011"),
-      registeredAt: new Date().toISOString(),
-    };
-
-    // Generate statutory 6-digit OTP
-    const code = Math.floor(100000 + Math.random() * 900000).toString();
-    setGeneratedOtp(code);
-    setOtpCode("");
-    setCountdown(45);
-    setPendingSession({ officerSession, targetRoute, targetMine });
-
-    setTimeout(() => {
-      setLoading(false);
-      setIsVerifying(true);
-    }, 450);
   };
 
   /* ── verify 2FA code ── */
@@ -1186,6 +1201,7 @@ export default function Login() {
     try {
       storageService.saveCurrentSession(pendingSession.officerSession);
       storageService.setActiveAllocatedMine(pendingSession.targetMine);
+      
       if (mode === "signup") {
         const syncRes = await storageService.saveAccount({
           fullName: pendingSession.officerSession.name,
@@ -1196,6 +1212,7 @@ export default function Login() {
           securityRole: pendingSession.officerSession.securityRole,
           allocatedMine: pendingSession.targetMine,
           designation: pendingSession.officerSession.designation,
+          officialId: pendingSession.officerSession.officialId,
           registeredAt: pendingSession.officerSession.registeredAt,
         });
 
@@ -1207,14 +1224,14 @@ export default function Login() {
       }
     } catch (err: any) {
       console.error("Storage error:", err);
-      setErrorMsg(`Registration error: ${err?.message || "Failed to save account."}`);
+      setErrorMsg(`Authentication error: ${err?.message || "Failed to finalize session."}`);
       setLoading(false);
       return;
     }
 
     setLoading(false);
     setSuccessMsg(mode === "signup"
-      ? `Identity verified! Welcome, ${fullName}. Profile created in database.`
+      ? `Identity verified! Welcome, ${pendingSession.officerSession.name}. Profile created in database.`
       : `Identity verified! Authenticated as ${pendingSession.officerSession.name}. Redirecting…`);
     setTimeout(() => { window.location.href = pendingSession.targetRoute; }, 700);
   };

@@ -7,6 +7,7 @@ import {
 import {
   doc,
   setDoc,
+  getDoc,
   collection,
   getDocs,
   onSnapshot,
@@ -311,8 +312,198 @@ class StorageService {
       securityRole: account.securityRole || "Officer",
       allocatedMine: account.allocatedMine || "Rajpura Coal Mine (SECL)",
       designation: account.designation,
+      officialId: account.officialId,
       registeredAt: account.registeredAt
     });
+  }
+
+  /**
+   * Authenticate an officer using Firebase Authentication and/or Firestore database records,
+   * with seamless fallback to LocalStorage registered accounts and demo passwords.
+   */
+  public async authenticateOfficer(
+    identifier: string,
+    password: string,
+    preferredRole?: "corporate" | "manager" | "inspector"
+  ): Promise<{
+    success: boolean;
+    officer?: OfficerProfile;
+    targetRoute?: string;
+    error?: string;
+  }> {
+    const rawInput = (identifier || "").trim();
+    if (!rawInput) {
+      return { success: false, error: "Please enter your official email or registered mobile number." };
+    }
+    if (!password || !password.trim()) {
+      return { success: false, error: "Please enter your password to proceed." };
+    }
+
+    const cleanInput = rawInput.toLowerCase();
+    const isEmail = cleanInput.includes("@");
+    const inputDigits = rawInput.replace(/^(\+91|91)/, "").replace(/\D/g, "");
+
+    // 1. Check local registered officers first for instant lookup
+    const localOfficers = this.getAllOfficers();
+    const matchedLocal = localOfficers.find(o => {
+      const oEmail = (o.email || "").toLowerCase().trim();
+      const oPhoneDigits = (o.phone || "").replace(/^(\+91|91)/, "").replace(/\D/g, "");
+      return oEmail === cleanInput || (inputDigits.length === 10 && oPhoneDigits === inputDigits);
+    });
+
+    let targetEmail = isEmail ? cleanInput : (matchedLocal?.email || "");
+
+    // 2. If phone number entered and target email not found locally, search Firestore
+    if (!targetEmail && inputDigits.length === 10 && db) {
+      try {
+        const usersCol = collection(db, "users");
+        const qUsers = query(usersCol, where("phone", "==", inputDigits));
+        const snapUsers = await getDocs(qUsers);
+        if (!snapUsers.empty) {
+          const docData = snapUsers.docs[0].data();
+          if (docData.email) targetEmail = docData.email.toLowerCase().trim();
+        } else {
+          // Check formatted phone variations (+91 ...)
+          const snapAll = await getDocs(query(usersCol, limit(50)));
+          snapAll.forEach(d => {
+            const data = d.data();
+            const pDigits = (data.phone || "").replace(/^(\+91|91)/, "").replace(/\D/g, "");
+            if (pDigits === inputDigits && data.email) {
+              targetEmail = data.email.toLowerCase().trim();
+            }
+          });
+        }
+      } catch (e) {
+        console.warn("[Firestore] Phone lookup notice:", e);
+      }
+    }
+
+    // 3. If targetEmail is available and Firebase Auth is configured, attempt Firebase Sign-in
+    let firebaseUser: any = null;
+    let authError: any = null;
+
+    if (targetEmail && auth) {
+      try {
+        const cred = await signInWithEmailAndPassword(auth, targetEmail, password.trim());
+        firebaseUser = cred.user;
+      } catch (err: any) {
+        authError = err;
+        console.warn("[Firebase Auth] Sign-in notice:", err?.code, err?.message);
+      }
+    }
+
+    // 4. Standard Demo Passwords for demo roles
+    const validDemoPasswords: Record<string, string[]> = {
+      corporate: ["director123", "admin123", "cil2024", "mineguard"],
+      manager: ["manager123", "gevra123", "secl2024", "mineguard"],
+      inspector: ["inspector123", "dgms123", "safety2024", "mineguard"],
+    };
+
+    const roleToTest = (matchedLocal?.role as "corporate" | "manager" | "inspector") || preferredRole || "manager";
+    const acceptedDemoPasswords = validDemoPasswords[roleToTest] || ["mineguard", "admin123"];
+
+    // 5. If Firebase Authentication succeeded
+    if (firebaseUser) {
+      let firestoreData: any = null;
+      const emailDocKey = targetEmail.replace(/[^a-zA-Z0-9]/g, "_");
+
+      if (db) {
+        try {
+          const userDoc = await getDoc(doc(db, "users", firebaseUser.uid));
+          if (userDoc.exists()) {
+            firestoreData = userDoc.data();
+          } else {
+            const offDoc = await getDoc(doc(db, "officers", emailDocKey));
+            if (offDoc.exists()) {
+              firestoreData = offDoc.data();
+            } else {
+              const inspDoc = await getDoc(doc(db, "inspectors", firebaseUser.uid));
+              if (inspDoc.exists()) firestoreData = inspDoc.data();
+            }
+          }
+        } catch (e) {
+          console.warn("[Firestore] Profile fetch notice:", e);
+        }
+      }
+
+      const role = (firestoreData?.role || matchedLocal?.role || preferredRole || "manager") as "corporate" | "manager" | "inspector";
+      const allocatedMine = firestoreData?.allocatedMine || firestoreData?.mineName || matchedLocal?.allocatedMine || (role === "corporate" ? "All CIL Subsidiaries (National Scope)" : "SECL Gevra Mega Opencast");
+      const name = firestoreData?.name || firebaseUser.displayName || matchedLocal?.name || (role === "corporate" ? "Corporate Director" : role === "manager" ? "Mine Manager" : "Safety Inspector");
+      const designation = firestoreData?.designation || matchedLocal?.designation || (role === "corporate" ? "Director (Technical/Safety)" : role === "manager" ? "First Class Mine Manager" : "Statutory Safety Inspector");
+      const officialId = firestoreData?.officialId || matchedLocal?.officialId || (role === "corporate" ? "CIL-DIR-9021" : role === "manager" ? "DGMS-FCC-7721" : "DGMS-INSP-4011");
+
+      const officer: OfficerProfile = {
+        id: firebaseUser.uid,
+        name,
+        email: targetEmail,
+        phone: firestoreData?.phone || matchedLocal?.phone || rawInput,
+        role,
+        securityRole: firestoreData?.securityRole || (role === "corporate" ? "Corporate Safety Directorate" : role === "manager" ? "First Class Colliery Manager" : "Statutory Safety Inspector"),
+        allocatedMine,
+        designation,
+        officialId,
+        registeredAt: firestoreData?.registeredAt || matchedLocal?.registeredAt || new Date().toISOString()
+      };
+
+      // Update LocalStorage cache
+      this.saveOfficerAccount(officer);
+
+      const targetRoute = (role === "corporate" || (role as string) === "corporate_admin" || (role as string) === "admin")
+        ? "/corporate-admin"
+        : (role === "inspector" ? "/inspector" : "/mine-manager");
+
+      return { success: true, officer, targetRoute };
+    }
+
+    // 6. If local registered account password matches OR demo password matches (Offline / Demo fallback)
+    const isLocalPasswordCorrect = Boolean(matchedLocal && matchedLocal.password && matchedLocal.password.trim() === password.trim());
+    const isDemoPasswordCorrect = acceptedDemoPasswords.includes(password.trim());
+
+    if (isLocalPasswordCorrect || isDemoPasswordCorrect) {
+      const role = (matchedLocal?.role || preferredRole || "manager") as "corporate" | "manager" | "inspector";
+      const allocatedMine = matchedLocal?.allocatedMine || (role === "corporate" ? "All CIL Subsidiaries (National Scope)" : "SECL Gevra Mega Opencast");
+      const name = matchedLocal?.name || (role === "corporate" ? "Corporate Director" : role === "manager" ? "Er. Rajesh Sharma" : "Inspector A. Smith");
+
+      const officer: OfficerProfile = {
+        name,
+        email: targetEmail || (role === "corporate" ? "director@coalindia.in" : role === "manager" ? "manager@secl.gov.in" : "inspector@dgms.gov.in"),
+        phone: matchedLocal?.phone || rawInput,
+        password: password.trim(),
+        role,
+        securityRole: matchedLocal?.securityRole || (role === "corporate" ? "Corporate Safety Directorate" : role === "manager" ? "First Class Colliery Manager" : "Statutory Safety Inspector"),
+        allocatedMine,
+        designation: matchedLocal?.designation || (role === "corporate" ? "Director (Technical/Safety)" : role === "manager" ? "First Class Mine Manager" : "Statutory Safety Inspector"),
+        officialId: matchedLocal?.officialId || (role === "corporate" ? "CIL-DIR-9021" : role === "manager" ? "DGMS-FCC-7721" : "DGMS-INSP-4011"),
+        registeredAt: matchedLocal?.registeredAt || new Date().toISOString()
+      };
+
+      const targetRoute = (role === "corporate" || (role as string) === "corporate_admin" || (role as string) === "admin")
+        ? "/corporate-admin"
+        : (role === "inspector" ? "/inspector" : "/mine-manager");
+
+      return { success: true, officer, targetRoute };
+    }
+
+    // 7. If authentication failed, return descriptive error
+    if (authError) {
+      if (authError.code === "auth/wrong-password" || authError.code === "auth/invalid-credential") {
+        return { success: false, error: "Incorrect password. Please verify your password (or use demo password)." };
+      }
+      if (authError.code === "auth/user-not-found") {
+        return { success: false, error: "No account found with this email/phone. Please check credentials or register." };
+      }
+      if (authError.code === "auth/invalid-email") {
+        return { success: false, error: "Invalid email format. Please check your email address." };
+      }
+      if (authError.code === "auth/too-many-requests") {
+        return { success: false, error: "Too many failed attempts. Please try again later." };
+      }
+    }
+
+    return {
+      success: false,
+      error: `Invalid credentials. Demo password for ${preferredRole || "manager"} is: ${(preferredRole || "manager")}123, or use your registered password.`
+    };
   }
 
   // --- CMR 2017 Reg 27 Statutory Cadre Management ---
