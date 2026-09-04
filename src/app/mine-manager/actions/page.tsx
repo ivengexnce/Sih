@@ -3,39 +3,39 @@ import { useState, useEffect } from "react";
 import { ListChecks, Plus, Clock, CheckCircle, AlertTriangle, User, Calendar } from "lucide-react";
 import { useTranslation } from "@/components/LanguageContext";
 
-type Action = { id: string; title: string; assignee: string; due: string; priority: string; category: string; relatedTo: string };
+type Action = { id: string; title: string; assignee: string; due: string; priority: string; category: string; relatedTo: string; status?: string };
 type Column = { status: string; color: string; bg: string; icon: React.ReactNode; items: Action[] };
 
 const actions: Column[] = [
   {
     status: "Overdue", color: "#dc2626", bg: "#fee2e2", icon: <AlertTriangle size={14} color="#dc2626" />,
     items: [
-      { id: "ACT-045", title: "Replace expired fire extinguishers in Workshop Bay 3",   assignee: "P. Gupta",  due: "May 17, 2025", priority: "High",   category: "Fire Safety",    relatedTo: "VIO-127" },
-      { id: "ACT-043", title: "Repair ventilation fan at Underground Level 3",          assignee: "S. Mehta",  due: "May 16, 2025", priority: "High",   category: "Ventilation",    relatedTo: "VIO-124" },
-      { id: "ACT-041", title: "Conduct PPE awareness training for pit area crew",       assignee: "R. Sharma", due: "May 15, 2025", priority: "Medium", category: "Training",       relatedTo: "VIO-128" },
-      { id: "ACT-039", title: "Fix exposed electrical wiring in junction box panel",    assignee: "K. Patel",  due: "May 14, 2025", priority: "High",   category: "Electrical",     relatedTo: "VIO-122" },
-      { id: "ACT-037", title: "Install missing guards on crusher machine drum",         assignee: "R. Sharma", due: "May 13, 2025", priority: "Medium", category: "Equipment",      relatedTo: "VIO-125" },
-      { id: "ACT-035", title: "Unblock emergency exit in workshop area",               assignee: "P. Gupta",  due: "May 12, 2025", priority: "High",   category: "Emergency",      relatedTo: "VIO-127" },
+      { id: "ACT-045", title: "Replace expired fire extinguishers in Workshop Bay 3",   assignee: "P. Gupta",  due: "May 17, 2025", priority: "High",   category: "Fire Safety",    relatedTo: "VIO-127", status: "Overdue" },
+      { id: "ACT-043", title: "Repair ventilation fan at Underground Level 3",          assignee: "S. Mehta",  due: "May 16, 2025", priority: "High",   category: "Ventilation",    relatedTo: "VIO-124", status: "Overdue" },
+      { id: "ACT-041", title: "Conduct PPE awareness training for pit area crew",       assignee: "R. Sharma", due: "May 15, 2025", priority: "Medium", category: "Training",       relatedTo: "VIO-128", status: "Overdue" },
+      { id: "ACT-039", title: "Fix exposed electrical wiring in junction box panel",    assignee: "K. Patel",  due: "May 14, 2025", priority: "High",   category: "Electrical",     relatedTo: "VIO-122", status: "Overdue" },
+      { id: "ACT-037", title: "Install missing guards on crusher machine drum",         assignee: "R. Sharma", due: "May 13, 2025", priority: "Medium", category: "Equipment",      relatedTo: "VIO-125", status: "Overdue" },
+      { id: "ACT-035", title: "Unblock emergency exit in workshop area",               assignee: "P. Gupta",  due: "May 12, 2025", priority: "High",   category: "Emergency",      relatedTo: "VIO-127", status: "Overdue" },
     ],
   },
   {
     status: "Due Soon", color: "#ea580c", bg: "#fff7ed", icon: <Clock size={14} color="#ea580c" />,
     items: [
-      { id: "ACT-047", title: "Conduct monthly fire drill – all sections",              assignee: "S. Mehta",  due: "May 22, 2025", priority: "High",   category: "Emergency",      relatedTo: "INS-038" },
-      { id: "ACT-046", title: "Submit fortnightly compliance report to admin",          assignee: "R. Sharma", due: "May 21, 2025", priority: "Medium", category: "Compliance",     relatedTo: "—" },
-      { id: "ACT-044", title: "Service and calibrate gas detection sensors",            assignee: "K. Patel",  due: "May 20, 2025", priority: "High",   category: "Equipment",      relatedTo: "VIO-124" },
-      { id: "ACT-042", title: "Update MSDS sheets for all chemicals in storage",       assignee: "P. Gupta",  due: "May 21, 2025", priority: "Low",    category: "Documentation",  relatedTo: "—" },
-      { id: "ACT-040", title: "Replenish first aid kits at 4 surface stations",        assignee: "R. Sharma", due: "May 22, 2025", priority: "Medium", category: "First Aid",      relatedTo: "—" },
-      { id: "ACT-038", title: "Schedule quarterly equipment maintenance review",        assignee: "S. Mehta",  due: "May 23, 2025", priority: "Low",    category: "Equipment",      relatedTo: "—" },
-      { id: "ACT-036", title: "Install signage at all Level 3 entry points",           assignee: "K. Patel",  due: "May 24, 2025", priority: "Medium", category: "Signage",        relatedTo: "INS-036" },
+      { id: "ACT-047", title: "Conduct monthly fire drill – all sections",              assignee: "S. Mehta",  due: "May 22, 2025", priority: "High",   category: "Emergency",      relatedTo: "INS-038", status: "Due Soon" },
+      { id: "ACT-046", title: "Submit fortnightly compliance report to admin",          assignee: "R. Sharma", due: "May 21, 2025", priority: "Medium", category: "Compliance",     relatedTo: "—", status: "Due Soon" },
+      { id: "ACT-044", title: "Service and calibrate gas detection sensors",            assignee: "K. Patel",  due: "May 20, 2025", priority: "High",   category: "Equipment",      relatedTo: "VIO-124", status: "Due Soon" },
+      { id: "ACT-042", title: "Update MSDS sheets for all chemicals in storage",       assignee: "P. Gupta",  due: "May 21, 2025", priority: "Low",    category: "Documentation",  relatedTo: "—", status: "Due Soon" },
+      { id: "ACT-040", title: "Replenish first aid kits at 4 surface stations",        assignee: "R. Sharma", due: "May 22, 2025", priority: "Medium", category: "First Aid",      relatedTo: "—", status: "Due Soon" },
+      { id: "ACT-038", title: "Schedule quarterly equipment maintenance review",        assignee: "S. Mehta",  due: "May 23, 2025", priority: "Low",    category: "Equipment",      relatedTo: "—", status: "Due Soon" },
+      { id: "ACT-036", title: "Install signage at all Level 3 entry points",           assignee: "K. Patel",  due: "May 24, 2025", priority: "Medium", category: "Signage",        relatedTo: "INS-036", status: "Due Soon" },
     ],
   },
   {
     status: "On Track", color: "#16a34a", bg: "#dcfce7", icon: <CheckCircle size={14} color="#16a34a" />,
     items: [
-      { id: "ACT-048", title: "Organise weekly toolbox talk for crew supervisors",      assignee: "R. Sharma", due: "May 26, 2025", priority: "Low",    category: "Training",       relatedTo: "—" },
-      { id: "ACT-049", title: "Review and update emergency evacuation procedures",     assignee: "P. Gupta",  due: "May 28, 2025", priority: "Medium", category: "Emergency",      relatedTo: "—" },
-      { id: "ACT-050", title: "Procure replacement PPE stock for Q2",                  assignee: "K. Patel",  due: "May 30, 2025", priority: "Low",    category: "PPE",            relatedTo: "—" },
+      { id: "ACT-048", title: "Organise weekly toolbox talk for crew supervisors",      assignee: "R. Sharma", due: "May 26, 2025", priority: "Low",    category: "Training",       relatedTo: "—", status: "On Track" },
+      { id: "ACT-049", title: "Review and update emergency evacuation procedures",     assignee: "P. Gupta",  due: "May 28, 2025", priority: "Medium", category: "Emergency",      relatedTo: "—", status: "On Track" },
+      { id: "ACT-050", title: "Procure replacement PPE stock for Q2",                  assignee: "K. Patel",  due: "May 30, 2025", priority: "Low",    category: "PPE",            relatedTo: "—", status: "On Track" },
     ],
   },
 ];
@@ -54,7 +54,7 @@ export default function ActionsPage() {
 
   // Form fields
   const [title, setTitle] = useState("");
-  const [assignee, setAssignee] = useState("Er. S. Mehta");
+  const [assignee, setAssignee] = useState("Er. R. Sharma (Safety)");
   const [status, setStatus] = useState("On Track");
   const [priority, setPriority] = useState("High");
   const [category, setCategory] = useState("Ventilation");
@@ -69,10 +69,11 @@ export default function ActionsPage() {
         const customActions: Action[] = JSON.parse(stored);
         if (customActions.length > 0) {
           setColumnsData(prev => prev.map(col => {
-            if (col.status === "Due Soon") {
-              return { ...col, items: [...customActions, ...col.items] };
-            }
-            return col;
+            const matching = customActions.filter(act => act.status ? act.status === col.status : col.status === "Due Soon");
+            if (matching.length === 0) return col;
+            const existingIds = new Set(col.items.map(i => i.id));
+            const newItems = matching.filter(m => !existingIds.has(m.id));
+            return { ...col, items: [...newItems, ...col.items] };
           }));
         }
       }
@@ -90,7 +91,8 @@ export default function ActionsPage() {
       due,
       priority,
       category,
-      relatedTo: relatedTo.trim() || "—"
+      relatedTo: relatedTo.trim() || "—",
+      status: status
     };
 
     setColumnsData(prev => prev.map(col => {

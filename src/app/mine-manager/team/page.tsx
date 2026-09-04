@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import {
   Users, Plus, Search, Phone, Shield, HardHat, ClipboardCheck, Wrench,
   UserCheck, Mail, MapPin, Award, HeartPulse, Clock, FileText, CheckCircle2,
-  AlertTriangle, X, Send, Printer, UserCog, Calendar, Activity, ChevronRight
+  AlertTriangle, X, Send, Printer, UserCog, Calendar, Activity, ChevronRight, ListChecks
 } from "lucide-react";
 import { storageService } from "@/lib/storage";
 import { getCollieryProfile, CollieryProfile } from "@/lib/collieryData";
@@ -266,6 +266,37 @@ const INITIAL_TEAM: TeamMember[] = [
   }
 ];
 
+const DEFAULT_ACTIONS = [
+  { id: "ACT-045", title: "Replace expired fire extinguishers in Workshop Bay 3", assignee: "P. Gupta", due: "May 17, 2025", priority: "High", category: "Fire Safety", status: "Overdue" },
+  { id: "ACT-043", title: "Repair ventilation fan at Underground Level 3", assignee: "S. Mehta", due: "May 16, 2025", priority: "High", category: "Ventilation", status: "Overdue" },
+  { id: "ACT-041", title: "Conduct PPE awareness training for pit area crew", assignee: "R. Sharma", due: "May 15, 2025", priority: "Medium", category: "Training", status: "Overdue" },
+  { id: "ACT-039", title: "Fix exposed electrical wiring in junction box panel", assignee: "K. Patel", due: "May 14, 2025", priority: "High", category: "Electrical", status: "Overdue" },
+  { id: "ACT-037", title: "Install missing guards on crusher machine drum", assignee: "R. Sharma", due: "May 13, 2025", priority: "Medium", category: "Equipment", status: "Overdue" },
+  { id: "ACT-035", title: "Unblock emergency exit in workshop area", assignee: "P. Gupta", due: "May 12, 2025", priority: "High", category: "Emergency", status: "Overdue" },
+  { id: "ACT-047", title: "Conduct monthly fire drill – all sections", assignee: "S. Mehta", due: "May 22, 2025", priority: "High", category: "Emergency", status: "Due Soon" },
+  { id: "ACT-046", title: "Submit fortnightly compliance report to admin", assignee: "R. Sharma", due: "May 21, 2025", priority: "Medium", category: "Compliance", status: "Due Soon" },
+  { id: "ACT-044", title: "Service and calibrate gas detection sensors", assignee: "K. Patel", due: "May 20, 2025", priority: "High", category: "Equipment", status: "Due Soon" },
+  { id: "ACT-042", title: "Update MSDS sheets for all chemicals in storage", assignee: "P. Gupta", due: "May 21, 2025", priority: "Low", category: "Documentation", status: "Due Soon" },
+  { id: "ACT-040", title: "Replenish first aid kits at 4 surface stations", assignee: "R. Sharma", due: "May 22, 2025", priority: "Medium", category: "First Aid", status: "Due Soon" },
+  { id: "ACT-038", title: "Schedule quarterly equipment maintenance review", assignee: "S. Mehta", due: "May 23, 2025", priority: "Low", category: "Equipment", status: "Due Soon" },
+  { id: "ACT-036", title: "Install signage at all Level 3 entry points", assignee: "K. Patel", due: "May 24, 2025", priority: "Medium", category: "Signage", status: "Due Soon" },
+  { id: "ACT-048", title: "Organise weekly toolbox talk for crew supervisors", assignee: "R. Sharma", due: "May 26, 2025", priority: "Low", category: "Training", status: "On Track" },
+  { id: "ACT-049", title: "Review and update emergency evacuation procedures", assignee: "P. Gupta", due: "May 28, 2025", priority: "Medium", category: "Emergency", status: "On Track" },
+  { id: "ACT-050", title: "Procure replacement PPE stock for Q2", assignee: "K. Patel", due: "May 30, 2025", priority: "Low", category: "PPE", status: "On Track" },
+];
+
+const getMemberActions = (member: TeamMember, allActions: any[]) => {
+  const normName = member.name.toLowerCase();
+  const nameParts = normName.split(" ");
+  const lastName = nameParts[nameParts.length - 1] || "";
+  const initials = member.initials.toLowerCase();
+
+  return allActions.filter(act => {
+    const ass = (act.assignee || "").toLowerCase();
+    return ass.includes(lastName) || ass.includes(normName) || ass.includes(initials);
+  });
+};
+
 const deptColors: Record<string, { bg: string; color: string }> = {
   Operations:  { bg: "#e8f5ee", color: "#2d6a4f" },
   Safety:      { bg: "#fff0f0", color: "#dc2626" },
@@ -289,6 +320,7 @@ const roleIcon = (role: string) => {
 export default function TeamPage() {
   const [colliery, setColliery] = useState<CollieryProfile>(getCollieryProfile("gevra"));
   const [teamList, setTeamList] = useState<TeamMember[]>(INITIAL_TEAM);
+  const [allActions, setAllActions] = useState<any[]>(DEFAULT_ACTIONS);
   const [query, setQuery] = useState("");
   const [selectedMember, setSelectedMember] = useState<TeamMember | null>(null);
   const [detailModalOpen, setDetailModalOpen] = useState(false);
@@ -316,6 +348,22 @@ export default function TeamPage() {
     try {
       const mine = storageService.getActiveAllocatedMine();
       setColliery(getCollieryProfile(mine));
+
+      const stored = localStorage.getItem("mineguard_custom_actions");
+      let combinedActions = [...DEFAULT_ACTIONS];
+      if (stored) {
+        const custom = JSON.parse(stored);
+        if (Array.isArray(custom) && custom.length > 0) {
+          const merged = [...custom, ...DEFAULT_ACTIONS];
+          combinedActions = Array.from(new Map(merged.map(item => [item.id, item])).values());
+        }
+      }
+      setAllActions(combinedActions);
+
+      setTeamList(prev => prev.map(m => ({
+        ...m,
+        actions: getMemberActions(m, combinedActions).length
+      })));
     } catch (e) {}
   }, []);
 
@@ -845,6 +893,46 @@ export default function TeamPage() {
                       </div>
                     ))}
                   </div>
+
+                  {/* Assigned CAPA Corrective Safety Actions */}
+                  {selectedMember && (() => {
+                    const memberActions = getMemberActions(selectedMember, allActions);
+                    return (
+                      <div style={{ marginTop: 18 }}>
+                        <h4 style={{ fontSize: 13, fontWeight: 700, color: "#111827", marginBottom: 8, display: "flex", alignItems: "center", gap: 6 }}>
+                          <ListChecks size={15} color="#2d6a4f" /> Assigned CAPA Safety Actions ({memberActions.length})
+                        </h4>
+                        {memberActions.length === 0 ? (
+                          <p style={{ fontSize: 12, color: "#6b7280", fontStyle: "italic", margin: 0 }}>No active CAPA safety actions assigned to this officer.</p>
+                        ) : (
+                          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                            {memberActions.map(act => {
+                              const statusColor = act.status === "Overdue" ? "#dc2626" : act.status === "On Track" ? "#16a34a" : "#ea580c";
+                              const statusBg = act.status === "Overdue" ? "#fee2e2" : act.status === "On Track" ? "#dcfce7" : "#fff7ed";
+                              return (
+                                <div key={act.id} style={{ padding: "10px 12px", background: "#f9fafb", border: "1px solid #e5e7eb", borderRadius: 8, fontSize: 12 }}>
+                                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
+                                    <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                                      <span style={{ fontWeight: 800, color: "#2d6a4f", fontSize: 11 }}>{act.id}</span>
+                                      <span style={{ fontSize: 10, fontWeight: 700, padding: "1px 6px", borderRadius: 4, background: statusBg, color: statusColor }}>
+                                        {act.status || "Assigned"}
+                                      </span>
+                                    </div>
+                                    <span style={{ fontSize: 11, color: "#6b7280" }}>Due: {act.due}</span>
+                                  </div>
+                                  <p style={{ fontSize: 12.5, fontWeight: 700, color: "#111827", margin: "2px 0 4px" }}>{act.title}</p>
+                                  <div style={{ display: "flex", gap: 6 }}>
+                                    <span style={{ fontSize: 10, padding: "2px 6px", borderRadius: 4, background: "#e5e7eb", color: "#374151", fontWeight: 600 }}>{act.category}</span>
+                                    <span style={{ fontSize: 10, padding: "2px 6px", borderRadius: 4, background: act.priority === "High" ? "#fee2e2" : "#fff7ed", color: act.priority === "High" ? "#dc2626" : "#ea580c", fontWeight: 600 }}>{act.priority} Priority</span>
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })()}
                 </div>
               )}
 

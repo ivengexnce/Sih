@@ -539,8 +539,10 @@ async function aiTranslateBatch(texts: string[], targetLangCode: string): Promis
         return data.translated;
       }
     }
-  } catch (err) {
-    console.error("aiTranslateBatch error:", err);
+  } catch (err: any) {
+    if (err?.name !== "AbortError" && !err?.message?.toLowerCase().includes("aborted")) {
+      console.error("aiTranslateBatch error:", err);
+    }
   }
   return texts;
 }
