@@ -94,8 +94,10 @@ export default function AiPageTranslator() {
               } catch { }
             }
           }
-        } catch (err) {
-          console.error("AI batch translation error:", err);
+        } catch (err: any) {
+          if (err?.name !== "AbortError" && !err?.message?.toLowerCase().includes("aborted")) {
+            console.error("AI batch translation error:", err);
+          }
         } finally {
           window.dispatchEvent(new CustomEvent("mineguard_ai_translating", {
             detail: { active: false, count: 0, lang: currentLang }

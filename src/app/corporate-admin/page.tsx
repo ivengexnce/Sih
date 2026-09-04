@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import AiRiskModal, { AiRiskTarget } from "@/components/AiRiskModal";
+import { storageService } from "@/lib/storage";
 
 const complianceData = [
   { month: "Jan", score: 72 }, { month: "Feb", score: 75 },
@@ -35,7 +36,7 @@ const riskDist = [
   { name: "Low",    value: 3, color: "#52b788" },
 ];
 
-const violations = [
+const initialViolations = [
   { mine: "Jharia Deep Mine",     type: "Spontaneous Coal Heating", severity: "High",   date: "Today, 10:15 AM" },
   { mine: "Singrauli Project",    type: "Auxiliary Fan Failure",    severity: "High",   date: "Yesterday" },
   { mine: "Talcher Bhubaneswari", type: "Air Quality Dust PM10",    severity: "Medium", date: "Sep 1, 2026" },
@@ -71,6 +72,26 @@ function Sparkline({ data, color }: { data: number[]; color: string }) {
 
 export default function CorporateDashboard() {
   const [selectedAiTarget, setSelectedAiTarget] = useState<AiRiskTarget | null>(null);
+  const [liveViolations, setLiveViolations] = useState<any[]>(initialViolations);
+
+  React.useEffect(() => {
+    const unsub = storageService.subscribeToViolations((vList) => {
+      if (vList && vList.length > 0) {
+        const mapped = vList.map((v) => ({
+          mine: v.mine || "Rajpura Coal Mine (SECL)",
+          type: v.title || v.section || "Statutory Non-Compliance",
+          severity: v.severity || "Medium",
+          date: v.timestamp || "Today",
+        }));
+
+        // Deduplicate against initial static demo entries
+        const existingKeys = new Set(mapped.map(m => `${m.mine}-${m.type}`));
+        const remainingInitial = initialViolations.filter(iv => !existingKeys.has(`${iv.mine}-${iv.type}`));
+        setLiveViolations([...mapped, ...remainingInitial]);
+      }
+    });
+    return () => unsub();
+  }, []);
 
   return (
     <div style={{ fontFamily: "var(--font-sans)" }}>
@@ -331,7 +352,7 @@ export default function CorporateDashboard() {
             </div>
           </div>
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-            {violations.map((v, i) => (
+            {liveViolations.map((v, i) => (
               <div key={i} style={{
                 display: "flex",
                 borderRadius: 10, border: "1px solid var(--border)",

@@ -83,6 +83,17 @@ export default function ViolationsPage() {
     setViolationsList(updated);
 
     try {
+      storageService.saveViolation({
+        id: newVio.id,
+        mine: colliery.name || "Rajpura Coal Mine (SECL)",
+        section: newVio.area,
+        title: `${newVio.type}: ${newVio.desc}`,
+        severity: newVio.severity as any,
+        status: "Open",
+        reportedBy: newVio.reporter,
+        timestamp: newVio.date,
+      });
+
       const stored = localStorage.getItem("mineguard_custom_violations");
       const existing = stored ? JSON.parse(stored) : [];
       localStorage.setItem("mineguard_custom_violations", JSON.stringify([newVio, ...existing]));

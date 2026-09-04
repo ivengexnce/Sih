@@ -15,6 +15,7 @@ import {
   limit,
   where
 } from "firebase/firestore";
+import { COLLIERY_DATABASE, CollieryProfile } from "./collieryData";
 
 export interface OfficerProfile {
   id?: string;
@@ -27,7 +28,7 @@ export interface OfficerProfile {
   allocatedMine: string;
   designation?: string;
   officialId?: string;
-  certType?: "First Class (Coal)" | "Second Class (Coal)" | "Statutory Inspector" | "Director";
+  certType?: "First Class (Coal)" | "Second Class (Coal)" | "Statutory Inspector" | "Director" | string;
   experienceYears?: number;
   safetyScore?: number;
   appointmentStatus?: "Appointed" | "Available Pool" | "Under Transfer";
@@ -242,7 +243,15 @@ class StorageService {
     if (typeof window === "undefined") return DEFAULT_OFFICERS;
     try {
       const data = localStorage.getItem(KEYS.OFFICERS);
-      return data ? JSON.parse(data) : DEFAULT_OFFICERS;
+      const list: OfficerProfile[] = data ? JSON.parse(data) : DEFAULT_OFFICERS;
+      const sess = this.getCurrentSession();
+      if (sess && sess.email) {
+        const exists = list.some(o => o.email.toLowerCase() === sess.email.toLowerCase());
+        if (!exists) {
+          list.push(sess);
+        }
+      }
+      return list;
     } catch (e) {
       return DEFAULT_OFFICERS;
     }
@@ -319,11 +328,40 @@ class StorageService {
   public getAppointedManagerForMine(mineName: string): OfficerProfile | undefined {
     const officers = this.getAllOfficers();
     const cleanQuery = mineName.toLowerCase().replace(/[^a-z0-9]/g, "");
-    return officers.find(o => {
+    
+    // First: Look for an officer explicitly allocated to this mine
+    const matchedOfficer = officers.find(o => {
       if (o.role !== "manager") return false;
       const cleanAlloc = (o.allocatedMine || "").toLowerCase().replace(/[^a-z0-9]/g, "");
       return cleanAlloc.includes(cleanQuery) || cleanQuery.includes(cleanAlloc);
     });
+
+    if (matchedOfficer) return matchedOfficer;
+
+    // Fallback: Match against COLLIERY_DATABASE entries by mine name/clean name
+    const collieryEntry = Object.values(COLLIERY_DATABASE).find(c => {
+      const cClean = c.name.toLowerCase().replace(/[^a-z0-9]/g, "");
+      return cClean.includes(cleanQuery) || cleanQuery.includes(cClean);
+    });
+
+    if (collieryEntry && collieryEntry.statutoryManagerName) {
+      return {
+        name: collieryEntry.statutoryManagerName,
+        email: `${collieryEntry.id.toLowerCase()}@coalmine.gov.in`,
+        role: "manager",
+        securityRole: "First Class Mine Manager",
+        allocatedMine: collieryEntry.name,
+        designation: collieryEntry.statutoryManagerCert || "First Class Colliery Manager (CMR Reg 27)",
+        officialId: `DGMS-FCC-${Math.floor(6000 + Math.random() * 3000)}`,
+        certType: collieryEntry.requiredCert || "First Class (Coal)",
+        experienceYears: 18,
+        safetyScore: 92.5,
+        appointmentStatus: "Appointed",
+        appointmentDate: "2024-01-15",
+      };
+    }
+
+    return undefined;
   }
 
   public getEligibleManagersPool(): OfficerProfile[] {
@@ -395,8 +433,8 @@ class StorageService {
   public saveViolation(violation: ViolationRecord): void {
     if (typeof window === "undefined") return;
     const current = this.getViolations();
-    current.unshift(violation);
-    localStorage.setItem(KEYS.VIOLATIONS, JSON.stringify(current));
+    const updated = [violation, ...current.filter(v => v.id !== violation.id)];
+    localStorage.setItem(KEYS.VIOLATIONS, JSON.stringify(updated));
 
     if (this.mode === "firebase") {
       this.syncViolationToFirebase(violation);
@@ -406,10 +444,88 @@ class StorageService {
   public getViolations(): ViolationRecord[] {
     if (typeof window === "undefined") return [];
     try {
-      const data = localStorage.getItem(KEYS.VIOLATIONS);
-      return data ? JSON.parse(data) : [];
+      const data1 = localStorage.getItem(KEYS.VIOLATIONS);
+      const v1: ViolationRecord[] = data1 ? JSON.parse(data1) : [];
+
+      const data2 = localStorage.getItem("mineguard_custom_violations");
+      const v2: any[] = data2 ? JSON.parse(data2) : [];
+      const mappedV2: ViolationRecord[] = v2.map(v => ({
+        id: v.id || `VIO-${Math.floor(100 + Math.random() * 900)}`,
+        mine: v.mine || v.mineName || v.area || "Rajpura Coal Mine (SECL)",
+        section: v.section || v.area || "Pit Area",
+        title: v.title || v.type || v.desc || "Statutory Non-Compliance",
+        severity: (v.severity || "Medium") as any,
+        status: (v.status || "Open") as any,
+        reportedBy: v.reportedBy || v.reporter || "Mine Safety Officer",
+        timestamp: v.timestamp || v.date || new Date().toLocaleDateString("en-US"),
+      }));
+
+      const combined = [...v1, ...mappedV2];
+      const unique = new Map<string, ViolationRecord>();
+      combined.forEach(item => {
+        if (!unique.has(item.id)) {
+          unique.set(item.id, item);
+        }
+      });
+      return Array.from(unique.values());
     } catch (e) {
       return [];
+    }
+  }
+
+  /**
+   * Subscribe to real-time live violations from Cloud Firestore & Local Storage
+   */
+  public subscribeToViolations(
+    callback: (violations: ViolationRecord[]) => void
+  ): () => void {
+    const emitCombined = (firestoreDocs: any[] = []) => {
+      const local = this.getViolations();
+      const firestoreMapped: ViolationRecord[] = firestoreDocs.map(d => ({
+        id: d.id || d.violationId || `VIO-${Math.floor(100 + Math.random() * 900)}`,
+        mine: d.mine || d.mineName || d.setup?.mine || "Colliery Project",
+        section: d.section || d.area || "Working Face",
+        title: d.title || d.type || d.description || "Statutory Hazard Violation",
+        severity: (d.severity || "Medium") as any,
+        status: (d.status || "Open") as any,
+        reportedBy: d.reportedBy || d.reporter || d.inspector || "Safety Inspector",
+        timestamp: d.timestamp || d.date || d.createdAt || new Date().toLocaleDateString("en-US"),
+      }));
+
+      const all = [...firestoreMapped, ...local];
+      const uniqueMap = new Map<string, ViolationRecord>();
+      all.forEach((item) => {
+        if (!uniqueMap.has(item.id)) {
+          uniqueMap.set(item.id, item);
+        }
+      });
+      callback(Array.from(uniqueMap.values()));
+    };
+
+    emitCombined([]);
+
+    if (!db) return () => {};
+
+    try {
+      const colRef = collection(db, "violations");
+      const q = query(colRef, orderBy("createdAt", "desc"), limit(60));
+      return onSnapshot(
+        q,
+        (snap) => {
+          const items: any[] = [];
+          snap.forEach((docSnap) => {
+            items.push({ id: docSnap.id, ...docSnap.data() });
+          });
+          emitCombined(items);
+        },
+        (err) => {
+          console.warn("[Firebase] Real-time violations subscription notice:", err);
+          emitCombined([]);
+        }
+      );
+    } catch (e) {
+      console.warn("[Firebase] Violations subscription init error:", e);
+      return () => {};
     }
   }
 
